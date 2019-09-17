@@ -7,13 +7,13 @@ mixin(grammar(ConfigFileParser));
 /**
  * Specify grammar for config file in the form:
  * ...
- * [feed_name] [refresh_time] "[feed_address]"
+ * [feed_name] [refresh_time] [feed_address]
  * ...
 */
 immutable string ConfigFileParser = `
 	ConfigFile:
 
-		ConfigFile <- Feed (Newline Feed)*
+		ConfigFile <- Feed* (Newline Feed)*
 
 		Feed <- Name space* Refresh space* Address
 

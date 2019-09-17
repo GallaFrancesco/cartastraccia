@@ -4,6 +4,8 @@ import vibe.core.log;
 import std.experimental.xml;
 import sumtype;
 
+import std.algorithm.searching : startsWith;
+
 public:
 
 alias RSS = SumType!(ValidRSS, InvalidRSS);
@@ -23,7 +25,6 @@ struct InvalidRSS {
  * A valid RSS feed is made of various channels
 */
 struct ValidRSS {
-	string feedName = "";
 	RSSChannel[string] channels;
 }
 
@@ -74,7 +75,7 @@ struct RSSItem {
 	string source;
 }
 
-void parseRSS(R)(R feed) @trusted
+RSS parseRSS(R)(R feed) @trusted
 {
 	auto cursor = chooseLexer!string
 		.parser
@@ -92,6 +93,8 @@ void parseRSS(R)(R feed) @trusted
 			cursor.next();
 		}
 	}
+
+	return rss;
 }
 
 private:
@@ -119,26 +122,33 @@ void insertElement(ElementType, Parent, C)(
 	} else assert(false, "Invalid ElementType provided");
 
 	while(cursor.kind != XMLKind.elementEnd && cursor.name != elname) {
+
 		immutable name = cursor.name;
+
 		if(name == "item") {
+
 			static if(is(ElementType == RSSChannel)) {
-				logInfo("---> Found item:");
 				cursor.enter();
 				insertElement!(RSSItem, RSSChannel, C)(rss, newElement, cursor);
 				cursor.exit();
 			}
+
+		} else if(name.startsWith("atom")){
+
+			logWarn("Skipping atom link identifier: " ~ name);
+
 		} else {
+
 			cursor.enter();
 			immutable content = cursor.content;
 			cursor.exit();
 
-			logInfo("Processing: " ~ name ~ ": " ~ content);
-
 			fill: switch(name) {
+
 				default:
 					logWarn("Invalid XML entry detected: " ~ name);
-					rss = InvalidRSS(name, content);
 					break fill;
+
 				static if(is(ElementType == RSSChannel)) {
 					static foreach(m; __traits(allMembers, RSSChannel)) {
 						static if(m != "items") {
@@ -147,17 +157,20 @@ void insertElement(ElementType, Parent, C)(
 								break fill;
 						}
 					}
+
 				} else if(is(ElementType == RSSItem)) {
 					static foreach(m; __traits(allMembers, RSSItem)) {
 							case m:
 								mixin("newElement."~m~" = content;");
 								break fill;
 					}
+
 				} else {
 					assert(false, "Invalid ElementType requested");
 				}
 			}
 		}
+
 		cursor.next();
 	}
 
