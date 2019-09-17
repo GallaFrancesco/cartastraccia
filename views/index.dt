@@ -1,0 +1,13 @@
+doctype html
+html
+	head
+		title CartaStraccia - RSS Feed Reader
+	body
+		h1 fname
+		- foreach(newsItem; newsList)
+			- auto htmlData = newsItem.description;
+			- auto nLink = newsItem.link;
+			- auto nTitle = newsItem.title;
+			h2 nTitle
+			p!= htmlData
+			b a(href=nLink)
