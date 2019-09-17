@@ -5,6 +5,7 @@ import std.experimental.xml;
 import sumtype;
 
 import std.algorithm.searching : startsWith;
+import std.conv : to;
 
 public:
 
@@ -75,15 +76,14 @@ struct RSSItem {
 	string source;
 }
 
-RSS parseRSS(R)(R feed) @trusted
+void parseRSS(ref RSS rss, immutable string feed) @trusted
 {
 	auto cursor = chooseLexer!string
 		.parser
-		.cursor((CursorError err) { logWarn(err); });
+		.cursor((CursorError err) {});
 
 	cursor.setSource(feed);
 
-	RSS rss;
 	cursor.enter();
 	cursor.enter();
 	if(cursor.name == "channel") {
@@ -93,8 +93,36 @@ RSS parseRSS(R)(R feed) @trusted
 			cursor.next();
 		}
 	}
+}
 
-	return rss;
+// mainly for debugging purposes
+string dumpRSScli(ref RSS rss)
+{
+	string res;
+
+	rss.match!(
+			(InvalidRSS i) {
+					res = "Invalid RSS feed";
+				},
+			(ValidRSS vr) {
+				foreach(cname, channel; vr.channels) {
+					res ~= "\n===\n~"
+						~ cname ~ "\n"
+						~ channel.link ~ "\n"
+						~ channel.description ~ "\n"
+						~ "\n===\n";
+					ulong cnt = 0;
+					foreach(iname, item; channel.items) {
+						res ~= " " ~ cnt.to!string ~ ". "
+							~ item.title ~ "\n"
+							~ item.link ~ "\n"
+							~ "---\n"
+							~ item.description ~ "\n---\n";
+						cnt++;
+					}
+				}
+			});
+	return res;
 }
 
 private:
@@ -135,7 +163,7 @@ void insertElement(ElementType, Parent, C)(
 
 		} else if(name.startsWith("atom")){
 
-			logWarn("Skipping atom link identifier: " ~ name);
+			logDebug("Skipping atom link identifier: " ~ name);
 
 		} else {
 
@@ -146,7 +174,7 @@ void insertElement(ElementType, Parent, C)(
 			fill: switch(name) {
 
 				default:
-					logWarn("Invalid XML entry detected: " ~ name);
+					logDebug("Invalid XML entry detected: " ~ name);
 					break fill;
 
 				static if(is(ElementType == RSSChannel)) {
@@ -176,7 +204,7 @@ void insertElement(ElementType, Parent, C)(
 
 	rss.match!(
 			(ref InvalidRSS i) {
-				logWarn("Invalid XML entry detected: "
+				logDebug("Invalid XML entry detected: "
 						~ i.element
 						~ ": "
 						~ i.content);

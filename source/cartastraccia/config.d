@@ -28,5 +28,4 @@ immutable string ConfigFileParser = `
 		Timeunit <- [mshd]
 
 		Newline <- endOfLine
-
 `;
