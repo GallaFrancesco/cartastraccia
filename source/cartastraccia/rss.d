@@ -127,6 +127,18 @@ string dumpRSScli(ref RSS rss)
 
 private:
 
+static immutable string selectElementName = "
+	string elname;
+
+	static if(is(ElementType == RSSChannel)) {
+		elname = \"channel\";
+		static assert(is(Parent == RSS));
+	} else if(is(ElementType == RSSItem)) {
+		elname = \"item\";
+		static assert(is(Parent == RSSChannel));
+	} else assert(false, \"Invalid ElementType provided\");
+";
+
 /**
  * Insert an element (RSSChannel or RSSItem) which has:
  * - A parent (be it the RSS xml root (RSSChannel
@@ -139,15 +151,7 @@ void insertElement(ElementType, Parent, C)(
 {
 	ElementType newElement;
 
-	string elname;
-
-	static if(is(ElementType == RSSChannel)) {
-		elname = "channel";
-		static assert(is(Parent == RSS));
-	} else if(is(ElementType == RSSItem)) {
-		elname = "item";
-		static assert(is(Parent == RSSChannel));
-	} else assert(false, "Invalid ElementType provided");
+	mixin(selectElementName);
 
 	while(rssRange.front.type != EntityType.elementEnd
 			&& rssRange.front.type != EntityType.text
@@ -163,10 +167,6 @@ void insertElement(ElementType, Parent, C)(
 			} else {
 				rss = InvalidRSS(name, "");
 			}
-
-		} else if(name.startsWith("atom")){
-
-			logDebug("Skipping atom link identifier: " ~ name);
 
 		} else if(rssRange.front.type == EntityType.text
 				|| rssRange.front.type == EntityType.cdata) {
@@ -196,9 +196,7 @@ void insertElement(ElementType, Parent, C)(
 								break fill;
 					}
 
-				} else {
-					assert(false, "Invalid ElementType requested");
-				}
+				} else assert(false, "Invalid ElementType requested");
 			}
 		}
 
