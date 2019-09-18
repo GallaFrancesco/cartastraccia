@@ -19,61 +19,7 @@ import core.time;
 import std.conv : to;
 import std.variant;
 
-alias RSSFeedList = SumType!(RSSFeed[], InvalidFeeds);
-
 alias TaskMap = Task[string];
-
-struct InvalidFeeds
-{
-	string msg;
-}
-
-struct RSSFeed
-{
-	string name;
-	Duration refresh;
-	string path;
-
-	this(string[] props) @safe
-	{
-		name = props[0];
-		path = props[3];
-
-		switch(props[2][0]) {
-			case 's':
-				refresh = dur!"seconds"(props[1].to!uint);
-				break;
-			case 'm':
-				refresh = dur!"minutes"(props[1].to!uint);
-				break;
-			case 'h':
-				refresh = dur!"hours"(props[1].to!uint);
-				break;
-			case 'd':
-				refresh = dur!"days"(props[1].to!uint);
-				break;
-			default:
-				assert(false, "should not get here");
-		}
-	}
-
-}
-
-RSSFeedList processFeeds(ParseTree pt) @trusted
-{
-	RSSFeed[] feeds;
-
-	foreach(ref conf; pt.children) {
-		foreach(ref feed; conf.children) {
-			feeds ~= RSSFeed(feed.matches
-						.filter!((immutable s) => s != "\n" && s != " ")
-						.array
-					);
-		}
-	}
-	if(feeds.empty) return RSSFeedList(InvalidFeeds("No feeds found"));
-	else return RSSFeedList(feeds);
-}
 
 void updateFeed(immutable string path) @trusted
 {
@@ -111,7 +57,6 @@ void updateFeed(immutable string path) @trusted
 /**
  * Communication protocol between tasks
 */
-
 enum FeedActorRequest { DATA, QUIT }
 
 alias RequestData = string;
