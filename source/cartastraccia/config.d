@@ -13,9 +13,9 @@ mixin(grammar(ConfigFileParser));
 immutable string ConfigFileParser = `
 	ConfigFile:
 
-		ConfigFile <- Feed* (Newline Feed)*
+		ConfigFile <- Feed+
 
-		Feed <- Name space* Refresh space* Address
+		Feed <- Name space* Refresh space* Address Newline
 
 		Name <- identifier
 
@@ -27,5 +27,5 @@ immutable string ConfigFileParser = `
 
 		Timeunit <- [mshd]
 
-		Newline <- endOfLine
+		Newline <- endOfLine / endOfInput
 `;

@@ -37,26 +37,31 @@ class EndpointService {
 
 	@path("/cli") void getCLIEndpoint(scope HTTPServerResponse res)
 	{
+		RequestData data;
 		feedList.match!(
 				(InvalidFeeds i) {},
 				(RSSFeed[] fl) {
 					fl.each!(
 						(RSSFeed f) {
+							// send task for response from server
 							tasks[f.name].send(Task.getThis());
-
+							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA);
-
+							// receive data length
 							auto totSize = receiveOnly!RequestDataLength;
 
 							RequestDataLength recSize = 0;
-							RequestData data;
+
 							while(recSize < totSize) {
 								data ~= receiveOnly!RequestData;
 								recSize += chunkSize;
 							}
 
-							res.writeBody(data);
+							data ~= "End of feed: " ~ f.name ~ "\n";
+
 						});
 				});
+
+		res.writeBody(data);
 	}
 }

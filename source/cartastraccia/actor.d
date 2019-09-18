@@ -125,7 +125,7 @@ void dispatch(scope Task task, immutable string data)
 	task.send(len);
 
 	ulong a = 0;
-	ulong b = chunkSize;
+	ulong b = (chunkSize > len) ? len : chunkSize;
 	while(a < len) {
 		task.send(data[a..b]);
 		a = b;

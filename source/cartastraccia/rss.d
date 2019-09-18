@@ -1,10 +1,11 @@
 module cartastraccia.rss;
 
 import vibe.core.log;
-import std.experimental.xml;
+import dxml.parser;
 import sumtype;
 
-import std.algorithm.searching : startsWith;
+import std.algorithm : startsWith;
+import std.range;
 import std.conv : to;
 
 public:
@@ -78,21 +79,20 @@ struct RSSItem {
 
 void parseRSS(ref RSS rss, immutable string feed) @trusted
 {
-	auto cursor = chooseLexer!string
-		.parser
-		.cursor((CursorError err) {});
-
-	cursor.setSource(feed);
-
-	cursor.enter();
-	cursor.enter();
-	if(cursor.name == "channel") {
-		if(cursor.enter()) {
-			alias C = typeof(cursor);
-			insertElement!(RSSChannel, RSS, C)(rss, rss, cursor);
-			cursor.next();
-		}
+	auto rssRange = parseXML!simpleXML(feed);
+	if(rssRange.front.name == "html") {
+		logWarn("Unable to parse HTML file");
+		rss = InvalidRSS("html", "");
+		return;
 	}
+
+	while(rssRange.front.name != "channel") {
+		rssRange.popFront();
+	}
+	rssRange.popFront();
+
+	alias C = typeof(rssRange);
+	insertElement!(RSSChannel, RSS, C)(rss, rss, rssRange);
 }
 
 // mainly for debugging purposes
@@ -132,10 +132,10 @@ private:
  * - A parent (be it the RSS xml root (RSSChannel
  *   or the RSSChannel in case of an RSSItem
  * - Various sub-entries which are processed sequentially
- *   by advancing cursor
+ *   by advancing rssRange
 */
 void insertElement(ElementType, Parent, C)(
-		ref RSS rss, ref Parent parent, ref C cursor) @trusted
+		ref RSS rss, ref Parent parent, ref C rssRange) @trusted
 {
 	ElementType newElement;
 
@@ -149,32 +149,35 @@ void insertElement(ElementType, Parent, C)(
 		static assert(is(Parent == RSSChannel));
 	} else assert(false, "Invalid ElementType provided");
 
-	while(cursor.kind != XMLKind.elementEnd && cursor.name != elname) {
+	while(rssRange.front.type != EntityType.elementEnd
+			&& rssRange.front.type != EntityType.text
+			&& rssRange.front.name != elname) {
 
-		immutable name = cursor.name;
+		immutable name = rssRange.front.name;
+		rssRange.popFront();
 
 		if(name == "item") {
 
 			static if(is(ElementType == RSSChannel)) {
-				cursor.enter();
-				insertElement!(RSSItem, RSSChannel, C)(rss, newElement, cursor);
-				cursor.exit();
+				insertElement!(RSSItem, RSSChannel, C)(rss, newElement, rssRange);
+			} else {
+				rss = InvalidRSS(name, "");
 			}
 
 		} else if(name.startsWith("atom")){
 
 			logDebug("Skipping atom link identifier: " ~ name);
 
-		} else {
+		} else if(rssRange.front.type == EntityType.text
+				|| rssRange.front.type == EntityType.cdata) {
 
-			cursor.enter();
-			immutable content = cursor.content;
-			cursor.exit();
+			immutable content = rssRange.front.text;
+			rssRange.popFront();
 
 			fill: switch(name) {
 
 				default:
-					logDebug("Invalid XML entry detected: " ~ name);
+					logDebug("Ignoring XML Entity: " ~ name);
 					break fill;
 
 				static if(is(ElementType == RSSChannel)) {
@@ -199,12 +202,12 @@ void insertElement(ElementType, Parent, C)(
 			}
 		}
 
-		cursor.next();
+		rssRange.popFront();
 	}
 
 	rss.match!(
 			(ref InvalidRSS i) {
-				logDebug("Invalid XML entry detected: "
+				logWarn("Invalid XML Entity detected: "
 						~ i.element
 						~ ": "
 						~ i.content);
