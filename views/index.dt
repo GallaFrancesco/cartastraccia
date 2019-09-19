@@ -3,11 +3,25 @@ html
 	head
 		title CartaStraccia - RSS Feed Reader
 	body
-		h1 fname
-		- foreach(newsItem; newsList)
-			- auto htmlData = newsItem.description;
-			- auto nLink = newsItem.link;
-			- auto nTitle = newsItem.title;
-			h2 nTitle
-			p!= htmlData
-			b a(href=nLink)
+		h1 Cartastraccia RSS Channels
+		p Click channel name to read, click Source link for remote source
+		ul#index
+		- uint cnt = 0;
+		- foreach(feed; fl)
+			- cnt++;
+			li
+				Feed #{cnt}: 
+					a(href="#"~feed.name) #{feed.name}
+				p  
+					a(href=feed.path) View source
+
+		- foreach(chit; channelItems)
+			h1(id=chit.fname) #{chit.cname}
+			- uint icnt = 0;
+			- foreach(item; chit.items)
+				- icnt++;
+				b #{icnt}. #{item.title}
+				p  
+					a(href=item.link) View source
+				p!= item.description
+

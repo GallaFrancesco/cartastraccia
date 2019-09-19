@@ -39,6 +39,16 @@ CARTASTRACCIA is a news reader for RSS feeds.
 > elinks \"http://localhost:8080\"
 ---------------------------------------------";
 
+void runWebServer(ref URLRouter router, immutable string bindAddress, immutable ushort bindPort)
+{
+	auto settings = new HTTPServerSettings;
+	settings.port = bindPort;
+	settings.bindAddresses = ["127.0.0.1", bindAddress];
+
+	listenHTTP(settings, router);
+	runEventLoop();
+}
+
 void runDaemon(EndpointType[] endpoints, immutable string feedsFile, immutable
 		string bindAddress, immutable ushort bindPort)
 {
@@ -54,21 +64,16 @@ void runDaemon(EndpointType[] endpoints, immutable string feedsFile, immutable
 			(RSSFeed[] fl) {
 				fl.each!(
 						(RSSFeed feed) {
-							tasks[feed.name] = runWorkerTaskH(&updateFeed, feed.path);
+							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
 						});
 			});
 
-
-	// start server to accept client requests
+	// initialize a new service to serve endpoints
 	auto router = new URLRouter;
 	router.registerWebInterface(new EndpointService(feeds, tasks));
 
-	auto settings = new HTTPServerSettings;
-	settings.port = bindPort;
-	settings.bindAddresses = ["127.0.0.1", bindAddress];
-
-	listenHTTP(settings, router);
-	runEventLoop();
+	// start the webserver in main thread
+	runWebServer(router, bindAddress, bindPort);
 }
 
 void runClient(immutable string bindAddress, immutable ushort bindPort)
