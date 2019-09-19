@@ -1,6 +1,7 @@
 module cartastraccia.actor;
 
 import cartastraccia.rss;
+import cartastraccia.renderer;
 
 import vibe.core.log;
 import vibe.inet.url;
@@ -48,6 +49,8 @@ void feedActor(immutable string feedName, immutable string path) @trusted
 				busyListen(rss);
 			},
 			(ref ValidRSS vr) {
+				immutable fileName = "public/channels/"~feedName~".html";
+				createHTMLPage(vr, feedName, fileName);
 				busyListen(rss);
 			});
 }
@@ -94,7 +97,6 @@ void busyListen(ref RSS rss) {
 
 							} else if(r == FeedActorRequest.DATA_HTML) {
 								logInfo("Received HTML request from task: "~webTask.getDebugID());
-								webTask.dispatchHTML(vr.channels);
 
 							} else if(r == FeedActorRequest.QUIT){
 								logDebug("Task exiting due to quit request.");
@@ -122,19 +124,3 @@ void dispatchCLI(scope Task task, immutable string data)
 		b = (b+chunkSize > len) ? len : b + chunkSize;
 	}
 }
-
-void dispatchHTML(scope Task task, RSSChannel[string] channels)
-{
-	ulong len = channels.length;
-	task.send(len);
-
-	foreach(string cname, RSSChannel ch; channels) {
-		task.send(cname);
-		ulong ilen = ch.items.length;
-		task.send(ilen);
-		foreach(string iname, RSSItem item; ch.items) {
-			task.send(item);
-		}
-	}
-}
-

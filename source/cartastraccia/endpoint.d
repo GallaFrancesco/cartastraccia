@@ -34,23 +34,16 @@ class EndpointService {
 
 	@path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
-		struct ChannelItems {
-			string cname;
-			string fname;
-			RSSItem[] items;
-		}
-
-		ChannelItems[] channelItems;
-
+		RSSFeed[] validFeeds;
 		feedList.match!(
 				(InvalidFeeds i) {},
 				(RSSFeed[] fl) {
-					ChannelItems[] tmpCh;
 					fl.each!(
 						(RSSFeed f) {
 							// send task for response from server
 							tasks[f.name].send(Task.getThis());
 
+							// validate feeds
 							auto resp = receiveOnly!FeedActorResponse;
 							if(resp == FeedActorResponse.INVALID) {
 								tasks.remove(f.name);
@@ -60,26 +53,9 @@ class EndpointService {
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_HTML);
 
-							// receive data length
-							auto nch = receiveOnly!RequestDataLength;
-							RequestDataLength chRecv = 0;
-
-							while(chRecv < nch) {
-								ChannelItems chit;
-								chit.fname = f.name;
-								chit.cname = receiveOnly!string;
-
-								RequestDataLength nit = receiveOnly!RequestDataLength;
-								RequestDataLength iRecv = 0;
-								while(iRecv < nit) {
-									chit.items ~= receiveOnly!RSSItem;
-									iRecv++;
-								}
-								channelItems ~= chit;
-								chRecv++;
-							}
+							validFeeds ~= f;
 						});
-					res.render!("index.dt", req, channelItems, fl);
+					res.render!("index.dt", req, validFeeds);
 				});
 	}
 

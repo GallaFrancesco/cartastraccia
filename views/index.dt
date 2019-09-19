@@ -4,24 +4,14 @@ html
 		title CartaStraccia - RSS Feed Reader
 	body
 		h1 Cartastraccia RSS Channels
-		p Click channel name to read, click Source link for remote source
+		p Click channel name to read, click Source for remote source
 		ul#index
 		- uint cnt = 0;
-		- foreach(feed; fl)
+		- foreach(feed; validFeeds)
 			- cnt++;
 			li
 				Feed #{cnt}: 
-					a(href="#"~feed.name) #{feed.name}
+					a(href="channels/"~feed.name~".html") #{feed.name}
 				p  
 					a(href=feed.path) View source
-
-		- foreach(chit; channelItems)
-			h1(id=chit.fname) #{chit.cname}
-			- uint icnt = 0;
-			- foreach(item; chit.items)
-				- icnt++;
-				b #{icnt}. #{item.title}
-				p  
-					a(href=item.link) View source
-				p!= item.description
 
