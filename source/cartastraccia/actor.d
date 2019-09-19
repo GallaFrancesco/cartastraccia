@@ -80,37 +80,41 @@ void busyListen(ref RSS rss) {
 			(ref ValidRSS vr) {
 				while(true) {
 
-					// receive the webserver task
-					Task webTask = receiveOnly!Task;
+					try {
+						// receive the webserver task
+						Task webTask = receiveOnly!Task;
 
-					if(webTask.running)	webTask.send(FeedActorResponse.VALID);
-					else {
-						logWarn("Web task is not running");
-						return;
+						if(webTask.running)	webTask.send(FeedActorResponse.VALID);
+						else {
+							logWarn("Web task is not running");
+							return;
+						}
+
+						// receive the actual request
+						receive(
+							(FeedActorRequest r) {
+
+
+								if(r == FeedActorRequest.DATA_CLI) {
+									logInfo("Received CLI request from task: "~webTask.getDebugID());
+									immutable string data = dumpRSS!(FeedActorRequest.DATA_CLI)(vr);
+									webTask.dispatchCLI(data);
+
+								} else if(r == FeedActorRequest.DATA_HTML) {
+									logInfo("Received HTML request from task: "~webTask.getDebugID());
+
+								} else if(r == FeedActorRequest.QUIT){
+									logInfo("Task exiting due to QUIT request.");
+									return;
+
+								}},
+
+							(Variant v) {
+								logFatal("Invalid message received from webserver.");
+							});
+					} catch (Exception e) {
+						logWarn("Waiting for actors to complete loading feeds.");
 					}
-
-					// receive the actual request
-					receive(
-						(FeedActorRequest r) {
-
-
-							if(r == FeedActorRequest.DATA_CLI) {
-								logInfo("Received CLI request from task: "~webTask.getDebugID());
-								immutable string data = dumpRSS!(FeedActorRequest.DATA_CLI)(vr);
-								webTask.dispatchCLI(data);
-
-							} else if(r == FeedActorRequest.DATA_HTML) {
-								logInfo("Received HTML request from task: "~webTask.getDebugID());
-
-							} else if(r == FeedActorRequest.QUIT){
-								logDebug("Task exiting due to quit request.");
-								return;
-
-							}},
-
-						(Variant v) {
-							logFatal("Invalid message received from webserver.");
-						});
 				}
 			});
 }
