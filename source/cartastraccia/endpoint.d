@@ -41,7 +41,11 @@ class EndpointService {
 					fl.each!(
 						(RSSFeed f) {
 							// send task for response from server
-							tasks[f.name].send(Task.getThis());
+							if(f.name in tasks) tasks[f.name].send(Task.getThis());
+							else {
+								tasks.remove(f.name);
+								return;
+							}
 
 							// validate feeds
 							auto resp = receiveOnly!FeedActorResponse;
@@ -55,6 +59,7 @@ class EndpointService {
 
 							validFeeds ~= f;
 						});
+					feedList = validFeeds;
 					res.render!("index.dt", req, validFeeds);
 				});
 	}
