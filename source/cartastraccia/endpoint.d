@@ -1,5 +1,6 @@
 module cartastraccia.endpoint;
 
+import cartastraccia.config;
 import cartastraccia.actor;
 
 import vibe.core.log;
