@@ -19,7 +19,7 @@ void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable strin
 		auto container = doc.createElement("div", doc.root.firstChild);
 		container.attr("class", "channel");
 		container.attr("id", feedName);
-		container.html = "<h1>"~cname~"</h2>";
+		container.html = "<meta charset=\"UTF-8\"><h1>"~cname~"</h2>";
 
 		ulong icnt = 0;
 		foreach(iname, item; channel.items) {

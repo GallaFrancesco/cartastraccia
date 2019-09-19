@@ -74,7 +74,22 @@ void runDaemon(immutable string feedsFile, immutable
 						(RSSFeed[] fl) {
 							fl.each!(
 									(RSSFeed feed) {
+										// start workers to serve RSS data
 										tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
+
+										// refresh RSS data with a timer
+										setTimer(feed.refresh, () {
+													tasks[feed.name].send(Task.getThis());
+
+													auto resp = receiveOnly!FeedActorResponse;
+													if(resp == FeedActorResponse.INVALID) {
+														tasks.remove(feed.name);
+														return;
+													}
+
+													tasks[feed.name].send(FeedActorRequest.QUIT);
+													tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
+												}, true);
 									});
 						});
 

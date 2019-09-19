@@ -1,17 +1,20 @@
 doctype html
 html
 	head
+		link(href="css/news.css", rel="stylesheet", type="text/css")
 		title CartaStraccia - RSS Feed Reader
+		:css
 	body
-		h1 Cartastraccia RSS Channels
-		p Click channel name to read, click Source for remote source
-		ul#index
-		- uint cnt = 0;
-		- foreach(feed; validFeeds)
-			- cnt++;
-			li
-				Feed #{cnt}: 
-					a(href="channels/"~feed.name~".html") #{feed.name}
-				p  
-					a(href=feed.path) View source
+		#list(class="channel")
+			h1 Cartastraccia RSS Channels
+			p Click channel name to read, click Source for remote source
+			ul#index
+			- uint cnt = 0;
+			- foreach(feed; validFeeds)
+				- cnt++;
+				li
+					Feed #{cnt}: 
+						a(href="channels/"~feed.name~".html") #{feed.name}
+					p  
+						a(href=feed.path) View source
 
