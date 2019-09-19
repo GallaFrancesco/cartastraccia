@@ -58,23 +58,33 @@ void runDaemon(immutable string feedsFile, immutable
 	auto feeds = processFeeds(pt);
 	TaskMap tasks;
 
-	// start tasks in charge of updating feeds
 	feeds.match!(
-			(InvalidFeeds i) => logFatal(i.msg),
+			(InvalidFeeds i) {
+				logWarn("Invalid feeds processed. Exiting.");
+				return;
+			},
 			(RSSFeed[] fl) {
-				fl.each!(
-						(RSSFeed feed) {
-							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
+
+				setupWorkerThreads(fl.length.to!uint);
+
+				// start tasks in charge of updating feeds
+				feeds.match!(
+						(InvalidFeeds i) => logFatal(i.msg),
+						(RSSFeed[] fl) {
+							fl.each!(
+									(RSSFeed feed) {
+										tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
+									});
 						});
-			});
 
-	// initialize a new service to serve requests
-	auto router = new URLRouter;
-	router.registerWebInterface(new EndpointService(feeds, tasks));
-	router.get("*", serveStaticFiles("public/"));
+				// initialize a new service to serve requests
+				auto router = new URLRouter;
+				router.registerWebInterface(new EndpointService(feeds, tasks));
+				router.get("*", serveStaticFiles("public/"));
 
-	// start the webserver in main thread
-	runWebServer(router, bindAddress, bindPort);
+				// start the webserver in main thread
+				runWebServer(router, bindAddress, bindPort);
+		});
 }
 
 void runClient(EndpointType endpoint, immutable string browser, immutable string bindAddress, immutable ushort bindPort)
