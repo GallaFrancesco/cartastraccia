@@ -57,6 +57,7 @@ class EndpointService {
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_HTML);
 
+							// add valid feed to list
 							validFeeds ~= f;
 						});
 					feedList = validFeeds;

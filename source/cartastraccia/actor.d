@@ -33,7 +33,6 @@ void feedActor(immutable string feedName, immutable string path) @trusted
 	RSS rss;
 	URL url = URL(path);
 
-
 	requestHTTP(url,
 			(scope HTTPClientRequest req) {
 				req.method = HTTPMethod.GET;
@@ -82,8 +81,13 @@ void busyListen(ref RSS rss) {
 				while(true) {
 
 					// receive the webserver task
-					auto webTask = receiveOnly!Task;
-					webTask.send(FeedActorResponse.VALID);
+					Task webTask = receiveOnly!Task;
+
+					if(webTask.running)	webTask.send(FeedActorResponse.VALID);
+					else {
+						logWarn("Web task is not running");
+						return;
+					}
 
 					// receive the actual request
 					receive(

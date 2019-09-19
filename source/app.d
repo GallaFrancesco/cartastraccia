@@ -65,6 +65,7 @@ void runDaemon(immutable string feedsFile, immutable
 			},
 			(RSSFeed[] fl) {
 
+				// n. threads == n. feeds
 				setupWorkerThreads(fl.length.to!uint);
 
 				// start tasks in charge of updating feeds

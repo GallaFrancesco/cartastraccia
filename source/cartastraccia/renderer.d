@@ -36,7 +36,7 @@ void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable strin
 	auto output = appender!string;
 	doc.root.outerHTML(output);
 
-	auto fpath = NativePath(pageName);
+	immutable fpath = NativePath(pageName);
 	if(existsFile(fpath)) removeFile(fpath);
 	appendToFile(fpath, output.data);
 }
