@@ -1,6 +1,9 @@
 module cartastraccia.rss;
 
+import cartastraccia.actor : FeedActorRequest;
+
 import vibe.core.log;
+import vibe.http.server : render;
 import dxml.parser;
 import sumtype;
 
@@ -11,7 +14,6 @@ import std.conv : to;
 public:
 
 alias RSS = SumType!(ValidRSS, InvalidRSS);
-alias RSSParent = SumType!(RSS, RSSChannel);
 
 /**
  * In case an element was found
@@ -19,6 +21,8 @@ alias RSSParent = SumType!(RSS, RSSChannel);
  * see: http://www.rssboard.org/rss-specification
  */
 struct InvalidRSS {
+	// cannot be copied
+	@disable this(this);
 	string element;
 	string content;
 }
@@ -27,12 +31,14 @@ struct InvalidRSS {
  * A valid RSS feed is made of various channels
 */
 struct ValidRSS {
+	// cannot be copied
+	@disable this(this);
 	RSSChannel[string] channels;
 }
 
 /**
  * Each channel has properties
- * and various items (actual news)
+ * and various RSSItems (actual news)
 */
 struct RSSChannel {
 	// required elements
@@ -77,6 +83,43 @@ struct RSSItem {
 	string source;
 }
 
+/**
+ * Entry point for dumping a valid rss feed
+*/
+string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string feedName = "")
+{
+	// cli is mainly for testing functionality
+	static if(dataFormat == FeedActorRequest.DATA_CLI) {
+
+		string res;
+
+		foreach(cname, ref channel; rss.channels) {
+			res ~= "\n===\n~"
+				~ cname ~ "\n"
+				~ channel.link ~ "\n"
+				~ channel.description ~ "\n"
+				~ "\n===\n";
+			ulong cnt = 0;
+			foreach(iname, item; channel.items) {
+				res ~= " " ~ cnt.to!string ~ ". "
+					~ item.title ~ "\n"
+					~ item.link ~ "\n"
+					~ "---\n"
+					~ item.description ~ "\n---\n";
+				cnt++;
+			}
+		}
+		return res;
+
+	// generate a valid HTML dump from the given rss struct
+	} else if(dataFormat == FeedActorRequest.DATA_HTML) {
+		// TODO
+	} else logFatal("Invalid data format received from webserver.");
+}
+
+/**
+ * Entrypoint for parsing a rss feed (repsesented as string)
+*/
 void parseRSS(ref RSS rss, immutable string feed) @trusted
 {
 	auto rssRange = parseXML!simpleXML(feed);
@@ -95,49 +138,8 @@ void parseRSS(ref RSS rss, immutable string feed) @trusted
 	insertElement!(RSSChannel, RSS, C)(rss, rss, rssRange);
 }
 
-// mainly for debugging purposes
-string dumpRSScli(ref RSS rss)
-{
-	string res;
-
-	rss.match!(
-			(InvalidRSS i) {
-					res = "Invalid RSS feed";
-				},
-			(ValidRSS vr) {
-				foreach(cname, channel; vr.channels) {
-					res ~= "\n===\n~"
-						~ cname ~ "\n"
-						~ channel.link ~ "\n"
-						~ channel.description ~ "\n"
-						~ "\n===\n";
-					ulong cnt = 0;
-					foreach(iname, item; channel.items) {
-						res ~= " " ~ cnt.to!string ~ ". "
-							~ item.title ~ "\n"
-							~ item.link ~ "\n"
-							~ "---\n"
-							~ item.description ~ "\n---\n";
-						cnt++;
-					}
-				}
-			});
-	return res;
-}
 
 private:
-
-static immutable string selectElementName = "
-	string elname;
-
-	static if(is(ElementType == RSSChannel)) {
-		elname = \"channel\";
-		static assert(is(Parent == RSS));
-	} else if(is(ElementType == RSSItem)) {
-		elname = \"item\";
-		static assert(is(Parent == RSSChannel));
-	} else assert(false, \"Invalid ElementType provided\");
-";
 
 /**
  * Insert an element (RSSChannel or RSSItem) which has:
@@ -153,6 +155,7 @@ void insertElement(ElementType, Parent, C)(
 
 	mixin(selectElementName);
 
+	// advance the parser to completion, entry by entry
 	while(rssRange.front.type != EntityType.elementEnd
 			&& rssRange.front.type != EntityType.text
 			&& rssRange.front.name != elname) {
@@ -162,6 +165,7 @@ void insertElement(ElementType, Parent, C)(
 
 		if(name == "item") {
 
+			// recursively insert items
 			static if(is(ElementType == RSSChannel)) {
 				insertElement!(RSSItem, RSSChannel, C)(rss, newElement, rssRange);
 			} else {
@@ -171,15 +175,18 @@ void insertElement(ElementType, Parent, C)(
 		} else if(rssRange.front.type == EntityType.text
 				|| rssRange.front.type == EntityType.cdata) {
 
+			// found a valid text field
 			immutable content = rssRange.front.text;
 			rssRange.popFront();
 
 			fill: switch(name) {
 
 				default:
+					// we don't care about entries which are not attributes of RSSChannel
 					logDebug("Ignoring XML Entity: " ~ name);
 					break fill;
 
+				// inserting a channel
 				static if(is(ElementType == RSSChannel)) {
 					static foreach(m; __traits(allMembers, RSSChannel)) {
 						static if(m != "items") {
@@ -189,6 +196,7 @@ void insertElement(ElementType, Parent, C)(
 						}
 					}
 
+				// inserting an item
 				} else if(is(ElementType == RSSItem)) {
 					static foreach(m; __traits(allMembers, RSSItem)) {
 							case m:
@@ -196,13 +204,15 @@ void insertElement(ElementType, Parent, C)(
 								break fill;
 					}
 
+				// should not get here (means function invocation was invalid)
 				} else assert(false, "Invalid ElementType requested");
 			}
 		}
-
+		// skip elementEnd
 		rssRange.popFront();
 	}
 
+	// finished channel / item parsing. Insert it into rss struct
 	rss.match!(
 			(ref InvalidRSS i) {
 				logWarn("Invalid XML Entity detected: "
@@ -213,9 +223,24 @@ void insertElement(ElementType, Parent, C)(
 			(ref ValidRSS v) {
 					static if(is(ElementType == RSSChannel))
 						parent.tryMatch!(
-								(ref ValidRSS v) => v.channels[newElement.title] = newElement);
+							(ref ValidRSS v) {
+								v.channels[newElement.title] = newElement;
+							});
 					else if(is(ElementType == RSSItem))
 						parent.items[newElement.title] = newElement;
 					logInfo("Inserted " ~ elname ~ ": " ~ newElement.title);
 				});
 }
+
+static immutable string selectElementName = "
+	string elname;
+
+	static if(is(ElementType == RSSChannel)) {
+		elname = \"channel\";
+		static assert(is(Parent == RSS));
+	} else if(is(ElementType == RSSItem)) {
+		elname = \"item\";
+		static assert(is(Parent == RSSChannel));
+	} else assert(false, \"Invalid ElementType provided\");
+";
+

@@ -2,6 +2,7 @@ module cartastraccia.endpoint;
 
 import cartastraccia.config;
 import cartastraccia.actor;
+import cartastraccia.rss;
 
 import vibe.core.log;
 import vibe.core.task;
@@ -31,14 +32,52 @@ class EndpointService {
 		tasks = tm;
 	}
 
-	@path("/") void getHTMLEndpoint()
+	@path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
-		//TODO
+		struct ChannelItems {
+			string cname;
+			string fname;
+			RSSItem[] items;
+		}
+
+		ChannelItems[] channelItems;
+
+		feedList.tryMatch!(
+				(RSSFeed[] fl) {
+					ChannelItems[] tmpCh;
+					fl.each!(
+						(RSSFeed f) {
+							// send task for response from server
+							tasks[f.name].send(Task.getThis());
+							// send data request
+							tasks[f.name].send(FeedActorRequest.DATA_HTML);
+
+							// receive data length
+							auto nch = receiveOnly!RequestDataLength;
+							RequestDataLength chRecv = 0;
+
+							while(chRecv < nch) {
+								ChannelItems chit;
+								chit.fname = f.name;
+								chit.cname = receiveOnly!string;
+
+								RequestDataLength nit = receiveOnly!RequestDataLength;
+								RequestDataLength iRecv = 0;
+								while(iRecv < nit) {
+									chit.items ~= receiveOnly!RSSItem;
+									iRecv++;
+								}
+								channelItems ~= chit;
+								chRecv++;
+							}
+						});
+					res.render!("index.dt", req, channelItems, fl);
+				});
 	}
 
 	@path("/cli") void getCLIEndpoint(scope HTTPServerResponse res)
 	{
-		RequestData data;
+		string data;
 		feedList.match!(
 				(InvalidFeeds i) {},
 				(RSSFeed[] fl) {
@@ -47,14 +86,14 @@ class EndpointService {
 							// send task for response from server
 							tasks[f.name].send(Task.getThis());
 							// send data request
-							tasks[f.name].send(FeedActorRequest.DATA);
+							tasks[f.name].send(FeedActorRequest.DATA_CLI);
 							// receive data length
 							auto totSize = receiveOnly!RequestDataLength;
 
 							RequestDataLength recSize = 0;
 
 							while(recSize < totSize) {
-								data ~= receiveOnly!RequestData;
+								data ~= receiveOnly!string;
 								recSize += chunkSize;
 							}
 
