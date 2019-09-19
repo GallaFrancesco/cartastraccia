@@ -45,10 +45,10 @@ void feedActor(immutable string feedName, immutable string path) @trusted
 			(ref InvalidRSS i) {
 				logWarn("Invalid feed at: "~path);
 				logWarn("Caused by entry \""~i.element~"\": "~i.content);
-				logWarn("Task exiting.");
+				busyListen(rss);
 			},
 			(ref ValidRSS vr) {
-				busyListen(vr);
+				busyListen(rss);
 			});
 }
 
@@ -57,7 +57,10 @@ void feedActor(immutable string feedName, immutable string path) @trusted
 */
 enum FeedActorRequest { DATA_CLI, DATA_HTML, QUIT }
 
+enum FeedActorResponse { INVALID, VALID }
+
 alias RequestDataLength = ulong;
+
 
 static immutable ulong chunkSize = 4096;
 
@@ -66,35 +69,44 @@ private:
 /**
  * Listen for messages from the webserver
 */
-void busyListen(ref ValidRSS rss) {
-	while(true) {
-		// receive the webserver task
-		auto webTask = receiveOnly!Task;
+void busyListen(ref RSS rss) {
+	rss.match!(
+			(ref InvalidRSS i) {
+					auto webTask = receiveOnly!Task;
+					webTask.send(FeedActorResponse.INVALID);
+				},
+			(ref ValidRSS vr) {
+				while(true) {
 
-		// receive the actual request
-		receive(
-			(FeedActorRequest r) {
+					// receive the webserver task
+					auto webTask = receiveOnly!Task;
+					webTask.send(FeedActorResponse.VALID);
+
+					// receive the actual request
+					receive(
+						(FeedActorRequest r) {
 
 
-				if(r == FeedActorRequest.DATA_CLI) {
-					logInfo("Received CLI request from task: "~webTask.getDebugID());
-					immutable string data = dumpRSS!(FeedActorRequest.DATA_CLI)(rss);
-					webTask.dispatchCLI(data);
+							if(r == FeedActorRequest.DATA_CLI) {
+								logInfo("Received CLI request from task: "~webTask.getDebugID());
+								immutable string data = dumpRSS!(FeedActorRequest.DATA_CLI)(vr);
+								webTask.dispatchCLI(data);
 
-				} else if(r == FeedActorRequest.DATA_HTML) {
-					logInfo("Received HTML request from task: "~webTask.getDebugID());
-					webTask.dispatchHTML(rss.channels);
+							} else if(r == FeedActorRequest.DATA_HTML) {
+								logInfo("Received HTML request from task: "~webTask.getDebugID());
+								webTask.dispatchHTML(vr.channels);
 
-				} else if(r == FeedActorRequest.QUIT){
-					logDebug("Task exiting due to quit request.");
-					return;
+							} else if(r == FeedActorRequest.QUIT){
+								logDebug("Task exiting due to quit request.");
+								return;
 
-				}},
+							}},
 
-			(Variant v) {
-				logFatal("Invalid message received from webserver.");
+						(Variant v) {
+							logFatal("Invalid message received from webserver.");
+						});
+				}
 			});
-	}
 }
 
 void dispatchCLI(scope Task task, immutable string data)

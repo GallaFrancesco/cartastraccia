@@ -42,13 +42,21 @@ class EndpointService {
 
 		ChannelItems[] channelItems;
 
-		feedList.tryMatch!(
+		feedList.match!(
+				(InvalidFeeds i) {},
 				(RSSFeed[] fl) {
 					ChannelItems[] tmpCh;
 					fl.each!(
 						(RSSFeed f) {
 							// send task for response from server
 							tasks[f.name].send(Task.getThis());
+
+							auto resp = receiveOnly!FeedActorResponse;
+							if(resp == FeedActorResponse.INVALID) {
+								tasks.remove(f.name);
+								return;
+							}
+
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_HTML);
 
@@ -85,6 +93,12 @@ class EndpointService {
 						(RSSFeed f) {
 							// send task for response from server
 							tasks[f.name].send(Task.getThis());
+
+							auto resp = receiveOnly!FeedActorResponse;
+							if(resp == FeedActorResponse.INVALID) {
+								tasks.remove(f.name);
+								return;
+							}
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_CLI);
 							// receive data length
