@@ -3,7 +3,6 @@ module cartastraccia.actor;
 import cartastraccia.rss;
 
 import vibe.core.log;
-import vibe.core.file : copyFile;
 import vibe.inet.url;
 import vibe.stream.operations : readAllUTF8;
 import vibe.http.client;
@@ -49,10 +48,6 @@ void feedActor(immutable string feedName, immutable string path) @trusted
 				logWarn("Task exiting.");
 			},
 			(ref ValidRSS vr) {
-				immutable dtname = "channels/"~feedName ~ ".dt";
-				copyFile(NativePath("views/channels/template.dt"),
-						NativePath("views/"~dtname), true);
-
 				busyListen(vr);
 			});
 }
