@@ -1,11 +1,69 @@
+body .index {
+	background-color: #e6e8e6;
+	padding: 40px;
+}
+
+body .index h1 {
+	text-align: center;
+	font-size: 60;
+	color: #b2675e;
+}
+
+body .index h2 {
+	text-align: center;
+	font-size: 60;
+}
+
+body .index a {
+	text-align: center;
+	font-size: 30px;
+}
+
+body .index p {
+	text-align: center;
+	text-decoration: bold;
+}
+
 body .channel {
-	font-size: 20px;
 	background-color: #e6e8e6;
 	padding: 40px;
 }
 
 body .channel h1 {
 	text-align: center;
+	font-size: 60;
 	color: #b2675e;
+}
+
+body .channel b {
+	font-size: 30px;
+}
+
+body .channel p {
+	font-size: 15px;
+	text-decoration: underline;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body .channelitem {
+	float: left;
+	width: 50%;
+	padding: 20px;
+	border-style: solid;
+	border-color: #e6e8e6;
+	border-width: 15px;
+}
+
+body .channelitem h2 {
+	color: #b2675e
+}
+
+body .row:after {
+	content: "";
+	display: table;
+	clear: both;
 }
 

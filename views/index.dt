@@ -5,16 +5,14 @@ html
 		title CartaStraccia - RSS Feed Reader
 		:css
 	body
-		#list(class="channel")
-			h1 Cartastraccia RSS Channels
-			p Click channel name to read, click Source for remote source
-			ul#index
+		#list(class="index")
+			h1 Cartastraccia
+			h2 "...fuck ads"
+			#index(class="index")
 			- uint cnt = 0;
 			- foreach(feed; validFeeds)
-				- cnt++;
-				li
-					Feed #{cnt}: 
+				#chname(class="index")
+					p 
 						a(href="channels/"~feed.name~".html") #{feed.name}
-					p  
-						a(href=feed.path) View source
-
+					br
+					a(href=feed.path) external link

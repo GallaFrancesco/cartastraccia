@@ -13,23 +13,44 @@ import std.array : appender;
 void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable string pageName)
 {
 	auto doc = createDocument();
-	doc.root.html = `<body>&nbsp;</body>`;
+	doc.root.html = `<head>
+			<meta charset="UTF-8">
+			<link href="../css/news.css"rel="stylesheet" type="text/css">
+			<title>Cartastraccia - `~feedName~`</title>
+			</head>`;
 
 	foreach(cname, channel; rss.channels) {
-		auto container = doc.createElement("div", doc.root.firstChild);
-		container.attr("class", "channel");
-		container.attr("id", feedName);
-		container.html = "<meta charset=\"UTF-8\"><h1>"~cname~"</h2>";
+		auto chCont = doc.createElement("div", doc.root.firstChild);
+		chCont.attr("class", "channel");
+		chCont.attr("id", feedName);
+		chCont.html = "<h1>"~cname~"</h2>";
 
-		ulong icnt = 0;
+		auto row = doc.createElement("div", doc.root.firstChild);
+		row.attr("class", "row");
+
+		auto icnt = channel.items.length;
+
+		auto column1 = doc.createElement("div", doc.root.firstChild);
+		column1.attr("class", "channelitem");
+		auto column2= doc.createElement("div", doc.root.firstChild);
+		column2.attr("class", "channelitem");
+
+		uint i=0;
 		foreach(iname, item; channel.items) {
-			icnt++;
-			auto container = doc.createElement("div", doc.root.firstChild);
-			container.attr("class", "channelitem");
-			container.html = "<h2>"~icnt.to!string~". "~iname~"</h2>"
-				~ "<b><a href="~item.link~">View Source</a></b>"
-				~ "<p>"~item.pubDate~"</p>"
-				~ item.description;
+			if(i < icnt/2) {
+				auto itemCont = doc.createElement("div", column1);
+				itemCont.html = "<h2>"~iname~"</h2>"
+					~ "<b><a href="~item.link~">View Source</a></b>"
+					~ "<p>"~item.pubDate~"</p>"
+					~ item.description;
+			} else {
+				auto itemCont = doc.createElement("div", column2);
+				itemCont.html = "<h2>"~iname~"</h2>"
+					~ "<b><a href="~item.link~">View Source</a></b>"
+					~ "<p>"~item.pubDate~"</p>"
+					~ item.description;
+			}
+			i++;
 		}
 	}
 
