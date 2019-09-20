@@ -12,7 +12,7 @@ html
 			- uint cnt = 0;
 			- foreach(feed; validFeeds)
 				#chname(class="index")
-					p 
+					h2
 						a(href="channels/"~feed.name~".html") #{feed.name}
-					br
-					a(href=feed.path) external link
+					p
+						a(href=feed.path) external link

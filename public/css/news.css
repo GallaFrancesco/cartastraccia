@@ -11,17 +11,23 @@ body .index h1 {
 
 body .index h2 {
 	text-align: center;
-	font-size: 60;
+	font-size: 40px;
+}
+
+body .index h3 {
+	text-align: center;
+	font-size: 20px;
 }
 
 body .index a {
 	text-align: center;
-	font-size: 30px;
+	font-size: 20px;
 }
 
 body .index p {
 	text-align: center;
 	text-decoration: bold;
+	font-size: 20px;
 }
 
 body .channel {
