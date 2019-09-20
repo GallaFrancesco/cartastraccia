@@ -79,7 +79,9 @@ void runDaemon(immutable string feedsFile, immutable
 
 										// refresh RSS data with a timer
 										setTimer(feed.refresh, () {
-													tasks[feed.name].send(Task.getThis());
+													if(feed.name in tasks)
+														tasks[feed.name].send(Task.getThis());
+													else return;
 
 													auto resp = receiveOnly!FeedActorResponse;
 													if(resp == FeedActorResponse.INVALID) {
