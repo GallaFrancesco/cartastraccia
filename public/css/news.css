@@ -1,70 +1,56 @@
-body .index {
-	background-color: #e6e8e6;
-	padding: 40px;
+* {
+	box-sizing: border-box;
 }
 
-body .index h1 {
+html {
+	background-color: #e6e8e6;
+}
+
+body .title {
+	background-color: #e6e8e6;
+	padding: 40px;
+	margin: 15px;
+	border-style: solid;
+	border-color: #b2675e;
+	border-width: 15px;
+}
+
+body .title h1 {
+	font-size: 60px;
 	text-align: center;
-	font-size: 60;
 	color: #b2675e;
 }
 
-body .index h2 {
+body .title h2 {
+	font-size: 20px;
+	font-style: italic;
 	text-align: center;
-	font-size: 40px;
 }
 
-body .index h3 {
-	text-align: center;
-	font-size: 20px;
+body .index {
+	float: left;
+	width: 50%;
+	padding: 60px;
+	border-style: solid;
+	border-color: #e6e8e6;
+	border-width: 15px;
+	background-color: #b2675e;
+}
+
+body .index h3 a {
+	text-align: left;
+	font-size: 40px;
+	color: #FFFFFF;
+	text-decoration: bold;
+	background-color: none;
 }
 
 body .index a {
 	text-align: center;
 	font-size: 20px;
-}
-
-body .index p {
-	text-align: center;
-	text-decoration: bold;
-	font-size: 20px;
-}
-
-body .channel {
-	background-color: #e6e8e6;
-	padding: 40px;
-}
-
-body .channel h1 {
-	text-align: center;
-	font-size: 60;
-	color: #b2675e;
-}
-
-body .channel b {
-	font-size: 30px;
-}
-
-body .channel p {
-	font-size: 15px;
-	text-decoration: underline;
-}
-
-* {
-	box-sizing: border-box;
-}
-
-body .channelitem {
-	float: left;
-	width: 50%;
-	padding: 20px;
-	border-style: solid;
-	border-color: #e6e8e6;
-	border-width: 15px;
-}
-
-body .channelitem h2 {
-	color: #b2675e
+	color: #e6e8e6;
+	text-decoration: none;
+	background-color: none;
 }
 
 body .row:after {

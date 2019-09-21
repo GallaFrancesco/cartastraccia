@@ -5,14 +5,19 @@ html
 		title CartaStraccia - RSS Feed Reader
 		:css
 	body
-		#list(class="index")
+		#title(class="title")
 			h1 Cartastraccia
 			h2 "...fuck ads"
-			#index(class="index")
-			- uint cnt = 0;
-			- foreach(feed; validFeeds)
-				#chname(class="index")
-					h2
-						a(href="channels/"~feed.name~".html") #{feed.name}
-					p
-						a(href=feed.path) external link
+		- ulong flen = validFeeds.length;
+		- foreach(feed; validFeeds[0..flen/2])
+			#chname1(class="index")
+				h3
+					a(href="channels/"~feed.name~".html") #{feed.name}
+				p
+					a(href=feed.path) external link
+		- foreach(feed; validFeeds[flen/2..$])
+			#chname2(class="index")
+				h3
+					a(href="channels/"~feed.name~".html") #{feed.name}
+				p
+					a(href=feed.path) external link

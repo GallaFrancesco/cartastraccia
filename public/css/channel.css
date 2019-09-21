@@ -1,0 +1,55 @@
+* {
+	box-sizing: border-box;
+}
+
+html {
+	background-color: #e6e8e6;
+}
+
+body .channel {
+	background-color: #b2675e;
+	padding: 40px;
+	margin: 15px;
+	border-style: solid;
+	border-color: #b2675e;
+	border-width: 15px;
+}
+
+body .channel h1 {
+	text-align: center;
+	font-size: 60;
+	color: #e6e8e6;
+}
+
+body .channel b {
+	font-size: 30px;
+}
+
+body .channel p {
+	font-size: 15px;
+	text-decoration: underline;
+}
+
+body .channelitem {
+	float: left;
+	width: 50%;
+	padding: 20px;
+	border-style: solid;
+	border-color: #e6e8e6;
+	border-width: 15px;
+}
+
+body .channelitem h2 {
+	color: #b2675e;
+}
+
+body .channelitem a {
+	color: #000000;
+}
+
+body .row:after {
+	content: "";
+	display: table;
+	clear: both;
+}
+

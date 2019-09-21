@@ -15,7 +15,7 @@ void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable strin
 	auto doc = createDocument();
 	doc.root.html = `<head>
 			<meta charset="UTF-8">
-			<link href="../css/news.css"rel="stylesheet" type="text/css">
+			<link href="../css/channel.css"rel="stylesheet" type="text/css">
 			<title>Cartastraccia - `~feedName~`</title>
 			</head>`;
 
