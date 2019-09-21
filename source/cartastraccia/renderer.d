@@ -7,8 +7,8 @@ import vibe.core.file;
 import vibe.core.path;
 
 import std.conv : to;
-import std.stdio;
 import std.array : appender;
+import std.regex;
 
 void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable string pageName)
 {
@@ -19,39 +19,37 @@ void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable strin
 			<title>Cartastraccia - `~feedName~`</title>
 			</head>`;
 
-	foreach(cname, channel; rss.channels) {
-		auto chCont = doc.createElement("div", doc.root.firstChild);
-		chCont.attr("class", "channel");
-		chCont.attr("id", feedName);
-		chCont.html = "<h1>"~cname~"</h2>";
+	auto chCont = doc.createElement("div", doc.root.firstChild);
+	chCont.attr("class", "channel");
+	chCont.attr("id", feedName);
+	chCont.html = "<h1>"~rss.channel.title~"</h2>";
 
-		auto row = doc.createElement("div", doc.root.firstChild);
-		row.attr("class", "row");
+	auto row = doc.createElement("div", doc.root.firstChild);
+	row.attr("class", "row");
 
-		auto icnt = channel.items.length;
+	auto icnt = rss.channel.items.length;
 
-		auto column1 = doc.createElement("div", doc.root.firstChild);
-		column1.attr("class", "channelitem");
-		auto column2= doc.createElement("div", doc.root.firstChild);
-		column2.attr("class", "channelitem");
+	auto column1 = doc.createElement("div", doc.root.firstChild);
+	column1.attr("class", "channelitem");
+	auto column2= doc.createElement("div", doc.root.firstChild);
+	column2.attr("class", "channelitem");
 
-		uint i=0;
-		foreach(iname, item; channel.items) {
-			if(i < icnt/2) {
-				auto itemCont = doc.createElement("div", column1);
-				itemCont.html = "<h2>"~iname~"</h2>"
-					~ "<b><a href="~item.link~">View Source</a></b>"
-					~ "<p>"~item.pubDate~"</p>"
-					~ item.description;
-			} else {
-				auto itemCont = doc.createElement("div", column2);
-				itemCont.html = "<h2>"~iname~"</h2>"
-					~ "<b><a href="~item.link~">View Source</a></b>"
-					~ "<p>"~item.pubDate~"</p>"
-					~ item.description;
-			}
-			i++;
+	uint i=0;
+	foreach(item; rss.channel.items) {
+		if(i < icnt/2) {
+			auto itemCont = doc.createElement("div", column1);
+			itemCont.html = "<h2>"~item.title~"</h2>"
+				~ "<b><a href="~item.link~">View Source</a></b>"
+				~ "<p>"~item.pubDate~"</p>"
+				~ replaceAll(item.description, regex("<.*pre>"), "");
+		} else {
+			auto itemCont = doc.createElement("div", column2);
+			itemCont.html = "<h2>"~item.title~"</h2>"
+				~ "<b><a href="~item.link~">View Source</a></b>"
+				~ "<p>"~item.pubDate~"</p>"
+				~ replaceAll(item.description, regex("<.*pre>"), "");
 		}
+		i++;
 	}
 
 	auto output = appender!string;

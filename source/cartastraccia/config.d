@@ -4,6 +4,7 @@ import pegged.grammar;
 import sumtype;
 
 import core.time;
+import std.datetime;
 import std.conv : to;
 import std.algorithm : filter;
 import std.range;
@@ -47,10 +48,12 @@ struct RSSFeed
 {
 	string name;
 	Duration refresh;
+	SysTime lastUpdate;
 	string path;
 
 	this(string[] props) @safe
 	{
+		lastUpdate = Clock.currTime();
 		name = props[0];
 		path = props[3];
 
@@ -89,4 +92,3 @@ RSSFeedList processFeeds(ParseTree pt) @trusted
 	if(feeds.empty) return RSSFeedList(InvalidFeeds("No feeds found"));
 	else return RSSFeedList(feeds);
 }
-

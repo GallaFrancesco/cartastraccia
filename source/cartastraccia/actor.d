@@ -45,12 +45,12 @@ void feedActor(immutable string feedName, immutable string path) @trusted
 			(ref InvalidRSS i) {
 				logWarn("Invalid feed at: "~path);
 				logWarn("Caused by entry \""~i.element~"\": "~i.content);
-				busyListen(rss);
+				busyListen(feedName, rss);
 			},
 			(ref ValidRSS vr) {
 				immutable fileName = "public/channels/"~feedName~".html";
 				createHTMLPage(vr, feedName, fileName);
-				busyListen(rss);
+				busyListen(feedName, rss);
 			});
 }
 
@@ -71,7 +71,7 @@ private:
 /**
  * Listen for messages from the webserver
 */
-void busyListen(ref RSS rss) {
+void busyListen(immutable string feedName, ref RSS rss) {
 	rss.match!(
 			(ref InvalidRSS i) {
 					auto webTask = receiveOnly!Task;
@@ -93,25 +93,31 @@ void busyListen(ref RSS rss) {
 						// receive the actual request
 						receive(
 							(FeedActorRequest r) {
+								switch(r) {
 
-
-								if(r == FeedActorRequest.DATA_CLI) {
+								case FeedActorRequest.DATA_CLI:
 									logInfo("Received CLI request from task: "~webTask.getDebugID());
 									immutable string data = dumpRSS!(FeedActorRequest.DATA_CLI)(vr);
 									webTask.dispatchCLI(data);
+									break;
 
-								} else if(r == FeedActorRequest.DATA_HTML) {
-									logInfo("Received HTML request from task: "~webTask.getDebugID());
+								case FeedActorRequest.DATA_HTML:
+									logInfo("Received HTML request on feed: "~feedName~"[Task: "~webTask.getDebugID()~"]");
+									break;
 
-								} else if(r == FeedActorRequest.QUIT){
+								case FeedActorRequest.QUIT:
 									logInfo("Task exiting due to QUIT request.");
 									return;
 
-								}},
+								default:
+									logFatal("Task received unknown request.");
+								}
+							},
 
 							(Variant v) {
 								logFatal("Invalid message received from webserver.");
 							});
+
 					} catch (Exception e) {
 						logWarn("Waiting for actors to complete loading feeds.");
 					}

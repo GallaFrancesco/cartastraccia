@@ -1,9 +1,12 @@
 module cartastraccia.endpoint;
 
 import cartastraccia.config;
+import cartastraccia.asciiart;
 import cartastraccia.actor;
 import cartastraccia.rss;
 
+import core.time;
+import vibe.core.core;
 import vibe.core.log;
 import vibe.core.task;
 import vibe.core.concurrency;
@@ -12,6 +15,7 @@ import vibe.web.web;
 import sumtype;
 
 import std.algorithm : each;
+import std.datetime;
 
 enum EndpointType {
 	cli,
@@ -30,16 +34,45 @@ class EndpointService {
 	{
 		feedList = fl;
 		tasks = tm;
+
+		// refresh RSS data with a timer
+		feedList.tryMatch!((ref RSSFeed[] fl) {
+
+				fl.each!((ref RSSFeed feed) {
+
+					setTimer(feed.refresh, () {
+
+							if(feed.name in tasks)
+								tasks[feed.name].send(Task.getThis());
+							else return;
+
+							auto resp = receiveOnly!FeedActorResponse;
+							if(resp == FeedActorResponse.INVALID) {
+								tasks.remove(feed.name);
+								return;
+							}
+
+							tasks[feed.name].send(FeedActorRequest.QUIT);
+							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
+
+							feed.lastUpdate = Clock.currTime();
+
+							}, true);
+				});
+		});
 	}
 
 	@path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
 		RSSFeed[] validFeeds;
 		feedList.match!(
+
 				(InvalidFeeds i) {},
+
 				(RSSFeed[] fl) {
-					fl.each!(
-						(RSSFeed f) {
+
+					fl.each!((RSSFeed f) {
+
 							// send task for response from server
 							if(f.name in tasks) tasks[f.name].send(Task.getThis());
 							else {
@@ -60,11 +93,16 @@ class EndpointService {
 							// add valid feed to list
 							validFeeds ~= f;
 						});
+
 					feedList = validFeeds;
-					res.render!("index.dt", req, validFeeds);
+					res.render!("index.dt", req, validFeeds, asciiArt);
+
 				});
 	}
 
+	/**
+	 * Debug purpose only ATM
+	 */
 	@path("/cli") void getCLIEndpoint(scope HTTPServerResponse res)
 	{
 		string data;
@@ -101,3 +139,4 @@ class EndpointService {
 		res.writeBody(data);
 	}
 }
+

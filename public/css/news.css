@@ -16,8 +16,9 @@ body .title {
 }
 
 body .title h1 {
-	font-size: 60px;
+	font-size: 1vw;
 	text-align: center;
+	text-decoration: bold;
 	color: #b2675e;
 }
 
@@ -38,7 +39,7 @@ body .index {
 }
 
 body .index h3 a {
-	text-align: left;
+	text-align: center;
 	font-size: 40px;
 	color: #FFFFFF;
 	text-decoration: bold;
@@ -46,10 +47,17 @@ body .index h3 a {
 }
 
 body .index a {
-	text-align: center;
+	text-align: left;
 	font-size: 20px;
 	color: #e6e8e6;
 	text-decoration: none;
+	background-color: none;
+}
+
+body .index b {
+	text-align: right;
+	font-size: 20px;
+	color: #bdd2e1;
 	background-color: none;
 }
 

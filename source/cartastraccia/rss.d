@@ -7,7 +7,8 @@ import vibe.http.server : render;
 import dxml.parser;
 import sumtype;
 
-import std.algorithm : startsWith;
+import std.algorithm : startsWith, sort;
+import std.datetime;
 import std.range;
 import std.conv : to;
 
@@ -33,7 +34,7 @@ struct InvalidRSS {
 struct ValidRSS {
 	// cannot be copied
 	@disable this(this);
-	RSSChannel[string] channels;
+	RSSChannel channel;
 }
 
 /**
@@ -64,7 +65,7 @@ struct RSSChannel {
 	string skipHours;
 	string skipDays;
 
-	RSSItem[string] items;
+	RSSItem[] items;
 }
 
 struct RSSItem {
@@ -93,14 +94,14 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 
 		string res;
 
-		foreach(cname, ref channel; rss.channels) {
-			res ~= "\n===\n~"
-				~ cname ~ "\n"
-				~ channel.link ~ "\n"
-				~ channel.description ~ "\n"
-				~ "\n===\n";
-			ulong cnt = 0;
-			foreach(iname, item; channel.items) {
+		res ~= "\n===\n~"
+			~ rss.channel.title ~ "\n"
+			~ rss.channel.link ~ "\n"
+			~ rss.channel.description ~ "\n"
+			~ "\n===\n";
+
+			uint cnt = 1;
+			foreach(item; rss.channel.items) {
 				res ~= " " ~ cnt.to!string ~ ". "
 					~ item.title ~ "\n"
 					~ item.link ~ "\n"
@@ -108,12 +109,9 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 					~ item.description ~ "\n---\n";
 				cnt++;
 			}
-		}
 		return res;
 
 	// generate a valid HTML dump from the given rss struct
-	} else if(dataFormat == FeedActorRequest.DATA_HTML) {
-		// TODO
 	} else logFatal("Invalid data format received from webserver.");
 }
 
@@ -136,6 +134,18 @@ void parseRSS(ref RSS rss, immutable string feed) @trusted
 
 	alias C = typeof(rssRange);
 	insertElement!(RSSChannel, RSS, C)(rss, rss, rssRange);
+
+	// parse date and sort in descending order (newest first)
+	rss.tryMatch!(
+			(ref InvalidRSS i) {
+				logWarn("Invalid RSS for feed: " ~ feed);
+				return;
+			},
+			(ref ValidRSS vr) {
+				vr.channel.items.sort!( (i,j) =>
+						(parseRFC822DateTime(i.pubDate)
+						 > parseRFC822DateTime(j.pubDate)));
+			});
 }
 
 
@@ -224,10 +234,10 @@ void insertElement(ElementType, Parent, C)(
 					static if(is(ElementType == RSSChannel))
 						parent.tryMatch!(
 							(ref ValidRSS v) {
-								v.channels[newElement.title] = newElement;
+								v.channel = newElement;
 							});
 					else if(is(ElementType == RSSItem))
-						parent.items[newElement.title] = newElement;
+						parent.items ~= newElement;
 					logInfo("Inserted " ~ elname ~ ": " ~ newElement.title);
 				});
 }

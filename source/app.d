@@ -1,6 +1,7 @@
 module app;
 
 import cartastraccia.config;
+import cartastraccia.asciiart;
 import cartastraccia.actor;
 import cartastraccia.endpoint;
 
@@ -22,12 +23,12 @@ import std.exception;
 import std.stdio;
 import std.file : readText;
 import std.algorithm : each;
+import std.datetime : SysTime;
 import std.getopt;
 import std.conv : to;
 import std.process;
 
-immutable string info = "=============================================
-CARTASTRACCIA is a news reader for RSS feeds.
+immutable string info = asciiArt~"
 =============================================
 0. Write a feeds.conf file [feed_name refresh_timeout feed_url]
 > echo \"Stallman 3h https://stallman.org/rss/rss.xml\" > feeds.conf
@@ -74,24 +75,10 @@ void runDaemon(immutable string feedsFile, immutable
 						(RSSFeed[] fl) {
 							fl.each!(
 									(RSSFeed feed) {
+
 										// start workers to serve RSS data
 										tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
 
-										// refresh RSS data with a timer
-										setTimer(feed.refresh, () {
-													if(feed.name in tasks)
-														tasks[feed.name].send(Task.getThis());
-													else return;
-
-													auto resp = receiveOnly!FeedActorResponse;
-													if(resp == FeedActorResponse.INVALID) {
-														tasks.remove(feed.name);
-														return;
-													}
-
-													tasks[feed.name].send(FeedActorRequest.QUIT);
-													tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
-												}, true);
 									});
 						});
 
@@ -105,21 +92,49 @@ void runDaemon(immutable string feedsFile, immutable
 		});
 }
 
-void runClient(EndpointType endpoint, immutable string browser, immutable string bindAddress, immutable ushort bindPort)
+void runClient(EndpointType endpoint, immutable string browser, immutable string
+		bindAddress, immutable ushort bindPort, immutable bool reloadFeeds)
 {
-	if(endpoint == EndpointType.cli) {
-		URL url = URL("http://"~bindAddress~":"~bindPort.to!string~"/cli");
+
+	if(reloadFeeds) {
+
+		URL url = URL("http://"~bindAddress~":"~bindPort.to!string~"/reload");
+
 		try {
 			requestHTTP(url,
+
 				(scope HTTPClientRequest req) {
 					req.method = HTTPMethod.GET;
 				},
+
+				(scope HTTPClientResponse res) {
+					// TODO proper info
+				});
+
+		} catch (Exception e) {
+			logWarn("ERROR from daemon: "~e.msg~"\nCannot reload feeds file.");
+		}
+	}
+
+	if(endpoint == EndpointType.cli) {
+
+		URL url = URL("http://"~bindAddress~":"~bindPort.to!string~"/cli");
+
+		try {
+			requestHTTP(url,
+
+				(scope HTTPClientRequest req) {
+					req.method = HTTPMethod.GET;
+				},
+
 				(scope HTTPClientResponse res) {
 						writeln(res.bodyReader.readAllUTF8());
 				});
+
 		} catch (Exception e) {
 			logWarn("ERROR from daemon: "~e.msg~"\nCheck daemon logs for details (is it running?)");
 		}
+
 	} else if(endpoint == EndpointType.html) {
 
 		if(!existsFile(browser)) {
@@ -143,6 +158,7 @@ void main(string[] args)
 	string bindAddress = "localhost";
 	ushort bindPort = 8080;
 	string browser = "/usr/bin/elinks";
+	bool reloadFeeds = false;
 
 	auto helpInformation = getopt(
 			args,
@@ -151,7 +167,8 @@ void main(string[] args)
 			"feeds|f", "File containing feeds to pull [feeds.conf]", &feedsFile,
 			"host|l", "Bind to this address [localhost]", &bindAddress,
 			"port|p", "Bind to this port [8080]", &bindPort,
-			"browser|b", "Absolute path to browser for HTML rendering [/usr/bin/elinks]", &browser
+			"browser|b", "Absolute path to browser for HTML rendering [/usr/bin/elinks]", &browser,
+			"reload|r", "Reload feeds file", &reloadFeeds
 		);
 
 	if(helpInformation.helpWanted) {
@@ -160,5 +177,5 @@ void main(string[] args)
 	}
 
 	if(daemon) runDaemon(feedsFile, bindAddress, bindPort);
-	else runClient(endpoint, browser, bindAddress, bindPort);
+	else runClient(endpoint, browser, bindAddress, bindPort, reloadFeeds);
 }
