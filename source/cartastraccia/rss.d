@@ -130,13 +130,13 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 void parseRSS(ref RSS rss, immutable string feed) @trusted
 {
 	auto rssRange = parseXML!simpleXML(feed);
+
 	if(rssRange.front.name == "html") {
-		logWarn("Unable to parse HTML file");
 		rss = InvalidRSS("html", "");
 		return;
 	}
 
-	while(rssRange.front.name != "channel") {
+	while(rssRange.front.type != EntityType.text && rssRange.front.name != "channel") {
 		rssRange.popFront();
 	}
 	rssRange.popFront();
