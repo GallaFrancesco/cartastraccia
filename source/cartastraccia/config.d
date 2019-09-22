@@ -48,12 +48,10 @@ struct RSSFeed
 {
 	string name;
 	Duration refresh;
-	SysTime lastUpdate;
 	string path;
 
 	this(string[] props) @safe
 	{
-		lastUpdate = Clock.currTime();
 		name = props[0];
 		path = props[3];
 

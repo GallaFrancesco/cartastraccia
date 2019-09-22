@@ -77,10 +77,8 @@ void runDaemon(immutable string feedsFile, immutable
 						(RSSFeed[] fl) {
 							fl.each!(
 									(RSSFeed feed) {
-
 										// start workers to serve RSS data
-										tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
-
+										tasks[feed.name] = runTask(&feedActor, feed.name, feed.path);
 									});
 						});
 

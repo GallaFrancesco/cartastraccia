@@ -30,17 +30,23 @@ class EndpointService {
 		TaskMap tasks;
 	}
 
+	DateTime[string] lastUpdate;
+
 	this(RSSFeedList fl, TaskMap tm)
 	{
 		feedList = fl;
 		tasks = tm;
 
 		// refresh RSS data with a timer
-		feedList.tryMatch!((ref RSSFeed[] fl) {
+		feedList.tryMatch!((RSSFeed[] fl) {
 
-				fl.each!((ref RSSFeed feed) {
+				fl.each!((RSSFeed feed) {
+
+					lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
 					setTimer(feed.refresh, () {
+
+							logWarn("Updating: " ~ feed.name);
 
 							if(feed.name in tasks)
 								tasks[feed.name].send(Task.getThis());
@@ -52,10 +58,13 @@ class EndpointService {
 								return;
 							}
 
-							tasks[feed.name].send(FeedActorRequest.QUIT);
-							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path);
+							// set last update time
+							lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
-							feed.lastUpdate = Clock.currTime();
+							tasks[feed.name].send(FeedActorRequest.QUIT);
+							tasks[feed.name] = runTask(&feedActor, feed.name, feed.path);
+
+							logWarn("Finished updating: " ~ feed.name);
 
 							}, true);
 				});
@@ -95,7 +104,7 @@ class EndpointService {
 						});
 
 					feedList = validFeeds;
-					res.render!("index.dt", req, validFeeds, asciiArt);
+					res.render!("index.dt", req, validFeeds, lastUpdate, asciiArt);
 
 				});
 	}

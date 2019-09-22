@@ -12,24 +12,21 @@ html
 		- ulong flen = validFeeds.length;
 		- foreach(feed; validFeeds[0..flen/2])
 			- import std.datetime;
-			- auto dt = cast(DateTime)feed.lastUpdate;
-			- immutable updated = dt.toSimpleString;
+			- immutable updated = lastUpdate[feed.name].toSimpleString;
 
 			#chname1(class="index")
 				h3
 					a(href="channels/"~feed.name~".html") #{feed.name}
 				p
 					a(href=feed.path) external link
-				b
-					Last update: #{updated}
+				b   last update: #{updated}
 
 		- foreach(feed; validFeeds[flen/2..$])
 			- import std.datetime;
-			- auto dt = cast(DateTime)feed.lastUpdate;
-			- immutable updated = dt.toSimpleString;
+			- immutable updated = lastUpdate[feed.name].toSimpleString;
 			#chname2(class="index")
 				h3
 					a(href="channels/"~feed.name~".html") #{feed.name}
 				p
 					a(href=feed.path) external link
-				b   Last update: #{updated}
+				b   last update: #{updated}
