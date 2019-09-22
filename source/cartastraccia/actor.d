@@ -23,8 +23,8 @@ import std.variant;
 
 alias TaskMap = Task[string];
 
-immutable uint MAX_RETRIES = 3;
-immutable REQ_TIMEOUT = 2.seconds;
+immutable uint ACTOR_MAX_RETRIES = 3;
+immutable ACTOR_REQ_TIMEOUT = 5.seconds;
 
 /**
  * Actor in charge of:
@@ -40,13 +40,13 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 	try {
 		auto req = Request();
 		req.keepAlive = false;
-		req.timeout = REQ_TIMEOUT;
+		req.timeout = ACTOR_REQ_TIMEOUT;
 		auto res = req.get(path);
 		parseRSS(rss, cast(immutable string)res.responseBody.data);
 
 	} catch (Exception e) {
 
-		if(retries < MAX_RETRIES) {
+		if(retries < ACTOR_MAX_RETRIES) {
 			feedActor(feedName, path, retries+1);
 			return;
 		}

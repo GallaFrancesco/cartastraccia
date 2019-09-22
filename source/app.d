@@ -104,7 +104,7 @@ void runClient(EndpointType endpoint, immutable string browser, immutable string
 			string url = "http://"~bindAddress~":"~bindPort.to!string~"/reload";
 			auto req = Request();
 			req.keepAlive = false;
-			req.timeout = REQ_TIMEOUT;
+			req.timeout = ACTOR_REQ_TIMEOUT;
 			req.get(url);
 
 		} catch (Exception e) {
@@ -117,7 +117,7 @@ void runClient(EndpointType endpoint, immutable string browser, immutable string
 			string url = "http://"~bindAddress~":"~bindPort.to!string~"/cli";
 			auto req = Request();
 			req.keepAlive = false;
-			req.timeout = REQ_TIMEOUT;
+			req.timeout = ACTOR_REQ_TIMEOUT;
 			req.get(url);
 
 		} catch (Exception e) {

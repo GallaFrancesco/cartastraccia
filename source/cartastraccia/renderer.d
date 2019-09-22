@@ -41,13 +41,13 @@ void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable strin
 			itemCont.html = "<h2>"~item.title~"</h2>"
 				~ "<b><a href="~item.link~">View Source</a></b>"
 				~ "<p>"~item.pubDate~"</p>"
-				~ replaceAll(item.description, regex("<.*pre>"), "");
+				~ cleanup(item.description);
 		} else {
 			auto itemCont = doc.createElement("div", column2);
 			itemCont.html = "<h2>"~item.title~"</h2>"
 				~ "<b><a href="~item.link~">View Source</a></b>"
 				~ "<p>"~item.pubDate~"</p>"
-				~ replaceAll(item.description, regex("<.*pre>"), "");
+				~ cleanup(item.description);
 		}
 		i++;
 	}
@@ -58,4 +58,10 @@ void createHTMLPage(ref ValidRSS rss, immutable string feedName, immutable strin
 	immutable fpath = NativePath(pageName);
 	if(existsFile(fpath)) removeFile(fpath);
 	appendToFile(fpath, output.data);
+}
+
+private string cleanup(immutable string data)
+{
+	immutable res = replaceAll(data, regex("<.*pre>"), "");
+	return res.replaceAll(regex("<img.*>"), "");
 }

@@ -191,6 +191,15 @@ void insertElement(ElementType, Parent, C)(
 				rss = InvalidRSS(name, "");
 			}
 
+		} else if(name == "image" || name == "media:content") {
+			// skip images
+			while(rssRange.front.type != EntityType.elementEnd
+					&& rssRange.front.name != name) {
+				rssRange.popFront(); // elementStart
+				rssRange.popFront(); // text
+				rssRange.popFront(); // elementEnd
+			}
+
 		} else if(rssRange.front.type == EntityType.text
 				|| rssRange.front.type == EntityType.cdata) {
 
