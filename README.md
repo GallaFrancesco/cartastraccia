@@ -15,6 +15,11 @@ Written in D using [sumtype](https://code.dlang.org/packages/sumtype),
 * Multiple endpoints support: Display the aggregated news in HTML, from the
   command line (WIP) or edit `source/cartastraccia/endpoints.d` to add your
   desired visualization
+* HTML endpoint visualization can be customized editing `public/css/*` and the
+  frontpage's Diet Template in `views/index.dt`
+* RSS parsing and partial validation (WIP) by keeping the tags needed to a
+  minimum: Carta Straccia follows a text-preferred phylosophy and tries to push
+  any other information out of the way by omitting it when possible.
 
 ## Installation
 
