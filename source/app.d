@@ -57,7 +57,7 @@ void runDaemon(immutable string feedsFile, immutable
 {
 	// parse feed list
 	auto pt = ConfigFile(readText(feedsFile));
-	assert(pt.successful, "Invalid "~feedsFile~" file format, check cartastraccia.config for grammar");
+	enforce(pt.successful, "Invalid "~feedsFile~" file format, check cartastraccia.config for grammar");
 	auto feeds = processFeeds(pt);
 	TaskMap tasks;
 
