@@ -39,3 +39,7 @@ cartastraccia --help
 ```
 
 For feeds configuration, see the sample `feeds.conf` file included.
+
+## License
+
+This project is licensed under the terms of the GPLv3 License.
