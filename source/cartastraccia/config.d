@@ -39,6 +39,7 @@ immutable string ConfigFileParser = `
 
 alias RSSFeedList = SumType!(RSSFeed[], InvalidFeeds);
 
+
 struct InvalidFeeds
 {
 	string msg;

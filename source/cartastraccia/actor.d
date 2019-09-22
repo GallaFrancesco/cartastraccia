@@ -22,35 +22,49 @@ import std.variant;
 
 alias TaskMap = Task[string];
 
+immutable uint MAX_RETRIES = 3;
+
 /**
  * Actor in charge of:
  * - parsing a RSS feed
  * - dumping news to DB
  * - listening for messages from the webserver
 */
-void feedActor(immutable string feedName, immutable string path) @trusted
+void feedActor(immutable string feedName, immutable string path, immutable uint retries) @trusted
 {
 	RSS rss;
 	URL url = URL(path);
 
-	requestHTTP(url,
-			(scope HTTPClientRequest req) {
-				req.method = HTTPMethod.GET;
-			},
-			(scope HTTPClientResponse res) {
-				parseRSS(rss, res.bodyReader.readAllUTF8());
-			});
+	try {
+		requestHTTP(url,
+				(scope HTTPClientRequest req) {
+					req.method = HTTPMethod.GET;
+				},
+				(scope HTTPClientResponse res) {
+					parseRSS(rss, res.bodyReader.readAllUTF8());
+				});
+
+	} catch (Exception e) {
+
+		logWarn("Failed connecting to: " ~ path ~ " with error: " ~ e.msg);
+		if(retries < MAX_RETRIES) {
+			logWarn("Retrying.");
+			feedActor(feedName, path, retries+1);
+		}
+		return;
+
+	}
 
 	rss.match!(
 			(ref InvalidRSS i) {
 				logWarn("Invalid feed at: "~path);
 				logWarn("Caused by entry \""~i.element~"\": "~i.content);
-				busyListen(feedName, rss);
+				listenOnce(feedName, rss);
 			},
 			(ref ValidRSS vr) {
 				immutable fileName = "public/channels/"~feedName~".html";
 				createHTMLPage(vr, feedName, fileName);
-				busyListen(feedName, rss);
+				listenOnce(feedName, rss);
 			});
 }
 
@@ -71,14 +85,17 @@ private:
 /**
  * Listen for messages from the webserver
 */
-void busyListen(immutable string feedName, ref RSS rss) {
+void listenOnce(immutable string feedName, ref RSS rss) {
+
+	bool quit = false;
+
 	rss.match!(
 			(ref InvalidRSS i) {
 					auto webTask = receiveOnly!Task;
 					webTask.send(FeedActorResponse.INVALID);
+					quit = true;
 				},
 			(ref ValidRSS vr) {
-				while(true) {
 
 					try {
 						// receive the webserver task
@@ -89,6 +106,7 @@ void busyListen(immutable string feedName, ref RSS rss) {
 							logWarn("Web task is not running");
 							return;
 						}
+
 
 						// receive the actual request
 						receive(
@@ -107,7 +125,8 @@ void busyListen(immutable string feedName, ref RSS rss) {
 
 								case FeedActorRequest.QUIT:
 									logInfo("Task exiting due to QUIT request.");
-									return;
+									quit = true;
+									break;
 
 								default:
 									logFatal("Task received unknown request.");
@@ -121,8 +140,11 @@ void busyListen(immutable string feedName, ref RSS rss) {
 					} catch (Exception e) {
 						logWarn("Waiting for actors to complete loading feeds.");
 					}
-				}
+
 			});
+
+	if(quit) return;
+	else listenOnce(feedName, rss);
 }
 
 void dispatchCLI(scope Task task, immutable string data)

@@ -62,7 +62,7 @@ class EndpointService {
 							lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
 							tasks[feed.name].send(FeedActorRequest.QUIT);
-							tasks[feed.name] = runTask(&feedActor, feed.name, feed.path);
+							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path, 0);
 
 							logWarn("Finished updating: " ~ feed.name);
 
