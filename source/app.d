@@ -28,7 +28,9 @@ import std.getopt;
 import std.conv : to;
 import std.process;
 
-immutable string info = asciiArt~"
+immutable string info = "
+=============================================
+|  Carta Straccia is a RSS feed aggregator  |
 =============================================
 0. Write a feeds.conf file [feed_name refresh_timeout feed_url]
 > echo \"Stallman 3h https://stallman.org/rss/rss.xml\" > feeds.conf
