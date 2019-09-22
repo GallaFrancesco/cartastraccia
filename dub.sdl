@@ -3,9 +3,11 @@ description "A RSS feed reader"
 authors "fra"
 copyright "Copyright © 2019, fra"
 license "GPLv3"
-
 dependency "dxml" version="~>0.4.1"
 dependency "htmld" version="~>0.3.7"
 dependency "pegged" version=">=0.0.0"
 dependency "sumtype" version="~>0.8.13"
+dependency "requests" version="~>1.0.9"
 dependency "vibe-d:web" version=">0.8.5"
+
+subConfigurations "requests" "vibed"

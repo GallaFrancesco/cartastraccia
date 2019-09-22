@@ -12,6 +12,7 @@ import vibe.core.concurrency;
 import vibe.core.core;
 import pegged.grammar;
 import sumtype;
+import requests;
 
 import std.algorithm : each, filter;
 import std.array;
@@ -23,6 +24,7 @@ import std.variant;
 alias TaskMap = Task[string];
 
 immutable uint MAX_RETRIES = 3;
+immutable REQ_TIMEOUT = 2.seconds;
 
 /**
  * Actor in charge of:
@@ -36,36 +38,37 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 	URL url = URL(path);
 
 	try {
-		requestHTTP(url,
-				(scope HTTPClientRequest req) {
-					req.method = HTTPMethod.GET;
-				},
-				(scope HTTPClientResponse res) {
-					parseRSS(rss, res.bodyReader.readAllUTF8());
-				});
+		auto req = Request();
+		req.keepAlive = false;
+		req.timeout = REQ_TIMEOUT;
+
+		auto res = req.get(path);
+		parseRSS(rss, cast(immutable string)res.responseBody.data);
 
 	} catch (Exception e) {
 
-		logWarn("Failed connecting to: " ~ path ~ " with error: " ~ e.msg);
 		if(retries < MAX_RETRIES) {
-			logWarn("Retrying.");
 			feedActor(feedName, path, retries+1);
+			return;
 		}
-		return;
-
+		rss = FailedRSS(e.msg);
 	}
 
 	rss.match!(
 			(ref InvalidRSS i) {
 				logWarn("Invalid feed at: "~path);
 				logWarn("Caused by entry \""~i.element~"\": "~i.content);
-				listenOnce(feedName, rss);
+			},
+			(ref FailedRSS f) {
+				logWarn("Failed to load feed: "~ feedName);
+				logWarn("Error: "~f.msg);
 			},
 			(ref ValidRSS vr) {
 				immutable fileName = "public/channels/"~feedName~".html";
 				createHTMLPage(vr, feedName, fileName);
-				listenOnce(feedName, rss);
 			});
+
+	listenOnce(feedName, rss);
 }
 
 /**
@@ -91,6 +94,11 @@ void listenOnce(immutable string feedName, ref RSS rss) {
 
 	rss.match!(
 			(ref InvalidRSS i) {
+					auto webTask = receiveOnly!Task;
+					webTask.send(FeedActorResponse.INVALID);
+					quit = true;
+				},
+			(ref FailedRSS f) {
 					auto webTask = receiveOnly!Task;
 					webTask.send(FeedActorResponse.INVALID);
 					quit = true;

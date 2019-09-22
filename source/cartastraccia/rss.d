@@ -14,7 +14,16 @@ import std.conv : to;
 
 public:
 
-alias RSS = SumType!(ValidRSS, InvalidRSS);
+alias RSS = SumType!(ValidRSS, InvalidRSS, FailedRSS);
+
+
+/**
+ * In case the RSS feed couldn't be loaded
+ */
+struct FailedRSS {
+	@disable this(this);
+	string msg;
+}
 
 /**
  * In case an element was found
@@ -230,6 +239,7 @@ void insertElement(ElementType, Parent, C)(
 						~ ": "
 						~ i.content);
 				},
+			(ref FailedRSS f) {}, 
 			(ref ValidRSS v) {
 					static if(is(ElementType == RSSChannel))
 						parent.tryMatch!(

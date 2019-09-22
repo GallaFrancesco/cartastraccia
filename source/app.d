@@ -18,6 +18,7 @@ import vibe.stream.operations : readAllUTF8;
 import vibe.core.concurrency;
 import pegged.grammar;
 import sumtype;
+import requests;
 
 import std.exception;
 import std.stdio;
@@ -77,11 +78,10 @@ void runDaemon(immutable string feedsFile, immutable
 						(RSSFeed[] fl) {
 							fl.each!(
 									(RSSFeed feed) {
-										logWarn("Starting: "~feed.name);
+										logInfo("Starting task: "~feed.name);
 										// start workers to serve RSS data
-										tasks[feed.name] =
-										runWorkerTaskH(&feedActor, feed.name,
-												feed.path, 0);
+										tasks[feed.name] = runWorkerTaskH(
+												&feedActor, feed.name, feed.path, 0);
 									});
 						});
 
@@ -100,19 +100,12 @@ void runClient(EndpointType endpoint, immutable string browser, immutable string
 {
 
 	if(reloadFeeds) {
-
-		URL url = URL("http://"~bindAddress~":"~bindPort.to!string~"/reload");
-
 		try {
-			requestHTTP(url,
-
-				(scope HTTPClientRequest req) {
-					req.method = HTTPMethod.GET;
-				},
-
-				(scope HTTPClientResponse res) {
-					// TODO proper info
-				});
+			string url = "http://"~bindAddress~":"~bindPort.to!string~"/reload";
+			auto req = Request();
+			req.keepAlive = false;
+			req.timeout = REQ_TIMEOUT;
+			req.get(url);
 
 		} catch (Exception e) {
 			logWarn("ERROR from daemon: "~e.msg~"\nCannot reload feeds file.");
@@ -120,19 +113,12 @@ void runClient(EndpointType endpoint, immutable string browser, immutable string
 	}
 
 	if(endpoint == EndpointType.cli) {
-
-		URL url = URL("http://"~bindAddress~":"~bindPort.to!string~"/cli");
-
 		try {
-			requestHTTP(url,
-
-				(scope HTTPClientRequest req) {
-					req.method = HTTPMethod.GET;
-				},
-
-				(scope HTTPClientResponse res) {
-						writeln(res.bodyReader.readAllUTF8());
-				});
+			string url = "http://"~bindAddress~":"~bindPort.to!string~"/cli";
+			auto req = Request();
+			req.keepAlive = false;
+			req.timeout = REQ_TIMEOUT;
+			req.get(url);
 
 		} catch (Exception e) {
 			logWarn("ERROR from daemon: "~e.msg~"\nCheck daemon logs for details (is it running?)");

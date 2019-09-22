@@ -5,7 +5,6 @@ import cartastraccia.asciiart;
 import cartastraccia.actor;
 import cartastraccia.rss;
 
-import core.time;
 import vibe.core.core;
 import vibe.core.log;
 import vibe.core.task;
@@ -16,6 +15,7 @@ import sumtype;
 
 import std.algorithm : each;
 import std.datetime;
+import core.time;
 
 enum EndpointType {
 	cli,
