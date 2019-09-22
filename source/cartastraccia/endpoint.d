@@ -46,8 +46,6 @@ class EndpointService {
 
 					setTimer(feed.refresh, () {
 
-							logWarn("Updating: " ~ feed.name);
-
 							if(feed.name in tasks)
 								tasks[feed.name].send(Task.getThis());
 							else return;
@@ -64,7 +62,7 @@ class EndpointService {
 							tasks[feed.name].send(FeedActorRequest.QUIT);
 							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path, 0);
 
-							logWarn("Finished updating: " ~ feed.name);
+							logInfo("Finished updating: " ~ feed.name);
 
 							}, true);
 				});
