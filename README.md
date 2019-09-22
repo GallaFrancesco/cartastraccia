@@ -3,7 +3,8 @@
 Written in D using [sumtype](https://code.dlang.org/packages/sumtype),
 [pegged](https://code.dlang.org/packages/pegged),
 [dxml](https://code.dlang.org/packages/dxml),
-[htmld](https://code.dlang.org/packages/htmld) and [Vibe.d](https://vibed.org).
+[htmld](https://code.dlang.org/packages/htmld),
+[requests](https://code.dlang.org/requests) and [Vibe.d](https://vibed.org)
 
 ## Features
 
