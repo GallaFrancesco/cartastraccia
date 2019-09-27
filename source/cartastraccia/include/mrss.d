@@ -1,19 +1,62 @@
+/**
+ * Copyright (c) 2019 Francesco Galla` - <me@fragal.eu>
+ *
+ * This file is part of cartastraccia.
+ *
+ * ---
+ * This is a direct translation of the mrss.h header file
+ * its only purpose is to act as an interface from its original C source to
+ * the D programming language.
+ * All credit for the original source goes to:
+ * bakunin - Andrea Marchesini <bakunin@autistici.org>
+ * https://www.autistici.org/bakunin/libmrss/
+ * ---
+ *
+ * cartastraccia is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * cartastraccia is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with cartastraccia.  If not, see <https://www.gnu.org/licenses/>.
+ * ---
+ *
+ * D interface file for libmrss.
+ *
+*/
+
+
 module cartastraccia.include.mrss;
+
+import std.string : fromStringz;
+import std.conv : to;
 
 import core.stdc.time;
 
+string ZtoString(const char* c) nothrow
+{
+    if (c !is null)
+      return to!string(fromStringz(c));
+    else
+      return null;
+}
+
+auto toZString(string s, ref size_t len) nothrow
+{
+	char[] ret = s.to!(char[]);
+	if (ret[$-1] != '\0')
+		ret ~= "\0".to!(char[]);
+	len = ret.length;
+	return ret.ptr;
+}
+
 extern(C) nothrow
 {
-
-//typedef struct mrss_t mrss_t;
-//typedef struct mrss_options_t mrss_options_t;
-//typedef struct mrss_item_t mrss_item_t;
-//typedef struct mrss_category_t mrss_category_t;
-//typedef struct mrss_hour_t mrss_hour_t;
-//typedef struct mrss_day_t mrss_day_t;
-//typedef struct mrss_tag_t mrss_tag_t;
-//typedef struct mrss_attribute_t mrss_attribute_t;
-//typedef void * mrss_generic_t;
 
 alias mrss_generic_t = void*;
 

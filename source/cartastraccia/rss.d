@@ -1,3 +1,25 @@
+/**
+ * Copyright (c) 2019 Francesco Galla` - <me@fragal.eu>
+ *
+ * This file is part of cartastraccia.
+ *
+ * cartastraccia is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * cartastraccia is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with cartastraccia.  If not, see <https://www.gnu.org/licenses/>.
+ * ---
+ *
+ * RSS data structures, types and parsing.
+ *
+*/
 module cartastraccia.rss;
 
 import cartastraccia.actor : FeedActorRequest;
@@ -16,7 +38,6 @@ import std.string;
 public:
 
 alias RSS = SumType!(ValidRSS, InvalidRSS, FailedRSS);
-
 
 /**
  * In case the RSS feed couldn't be loaded
@@ -124,6 +145,10 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 	} else logFatal("Invalid data format received from webserver.");
 }
 
+/**
+ * Entry point for parsing a rss feed (represented as string)
+ * Parsing done using libmrss (see cartastraccia.include.mrss)
+*/
 void parseRSS(ref RSS rss, string feed) @trusted
 {
 	mrss_t* rssData;
@@ -184,21 +209,4 @@ void newItem(mrss_item_t* rssItem, ref ValidRSS rss)
 	}
 
 	rss.channel.items ~= newItem;
-}
-
-string ZtoString(const char* c)
-{
-    if (c !is null)
-      return to!string(fromStringz(c));
-    else
-      return null;
-}
-
-auto toZString(string s, ref size_t len)
-{
-	char[] ret = s.to!(char[]);
-	if (ret[$-1] != '\0')
-		ret ~= "\0".to!(char[]);
-	len = ret.length;
-	return ret.ptr;
 }
