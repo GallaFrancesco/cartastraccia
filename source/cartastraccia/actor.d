@@ -42,7 +42,8 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 		req.keepAlive = false;
 		req.timeout = ACTOR_REQ_TIMEOUT;
 		auto res = req.get(path);
-		parseRSS(rss, cast(immutable string)res.responseBody.data);
+		string tmp = res.responseBody.data.to!string;
+		parseRSS(rss, tmp);
 
 	} catch (Exception e) {
 

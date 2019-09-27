@@ -140,6 +140,8 @@ void runClient(EndpointType endpoint, immutable string browser, immutable string
 
 void main(string[] args)
 {
+	setLogLevel(LogLevel.debug_);
+
 	// CLI arguments
 	bool daemon = false;
 	EndpointType endpoint = EndpointType.html;

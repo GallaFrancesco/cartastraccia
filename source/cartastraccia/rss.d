@@ -4,13 +4,14 @@ import cartastraccia.actor : FeedActorRequest;
 
 import vibe.core.log;
 import vibe.http.server : render;
-import dxml.parser;
 import sumtype;
+import mrss;
 
-import std.algorithm : startsWith, sort;
+import std.algorithm : startsWith, sort, move;
 import std.datetime;
 import std.range;
 import std.conv : to;
+import std.string;
 
 public:
 
@@ -59,7 +60,6 @@ struct RSSChannel {
 	// optional elements
 	string language;
 	string copyright;
-	string managingEditor;
 	string webMaster;
 	string pubDate;
 	string lastBuildDate;
@@ -124,25 +124,28 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 	} else logFatal("Invalid data format received from webserver.");
 }
 
-/**
- * Entrypoint for parsing a rss feed (repsesented as string)
-*/
-void parseRSS(ref RSS rss, immutable string feed) @trusted
+void parseRSS(ref RSS rss, string feed) @trusted
 {
-	auto rssRange = parseXML!simpleXML(feed);
+	mrss_t* rssData;
+	mrss_error_t err = mrss_parse_buffer(feed.toZString, feed.length, &rssData);
 
-	if(rssRange.front.name == "html") {
-		rss = InvalidRSS("html", "");
-		return;
+	if(err) {
+		rss = InvalidRSS("mrss", "");
+
+	} else {
+		rss = ValidRSS();
+
+		rss.tryMatch!(
+			(ref ValidRSS vrss) {
+				newChannel(rssData, vrss);
+
+				mrss_item_t* item = rssData.item;
+				while(item) {
+					newItem(item, vrss);
+					item = rssData.item;
+				}
+			});
 	}
-
-	while(rssRange.front.type != EntityType.text && rssRange.front.name != "channel") {
-		rssRange.popFront();
-	}
-	rssRange.popFront();
-
-	alias C = typeof(rssRange);
-	insertElement!(RSSChannel, RSS, C)(rss, rss, rssRange);
 
 	// parse date and sort in descending order (newest first)
 	rss.tryMatch!(
@@ -157,119 +160,42 @@ void parseRSS(ref RSS rss, immutable string feed) @trusted
 			});
 }
 
-
 private:
 
-/**
- * Insert an element (RSSChannel or RSSItem) which has:
- * - A parent (be it the RSS xml root (RSSChannel
- *   or the RSSChannel in case of an RSSItem
- * - Various sub-entries which are processed sequentially
- *   by advancing rssRange
-*/
-void insertElement(ElementType, Parent, C)(
-		ref RSS rss, ref Parent parent, ref C rssRange) @trusted
+void newChannel(mrss_t* rssData, ref ValidRSS rss)
 {
-	ElementType newElement;
-
-	mixin(selectElementName);
-
-	// advance the parser to completion, entry by entry
-	while(rssRange.front.type != EntityType.elementEnd
-			&& rssRange.front.type != EntityType.text
-			&& rssRange.front.name != elname) {
-
-		immutable name = rssRange.front.name;
-		rssRange.popFront();
-
-		if(name == "item") {
-
-			// recursively insert items
-			static if(is(ElementType == RSSChannel)) {
-				insertElement!(RSSItem, RSSChannel, C)(rss, newElement, rssRange);
-			} else {
-				rss = InvalidRSS(name, "");
-			}
-
-		} else if(name == "image" || name == "media:content") {
-			// skip images
-			while(rssRange.front.type != EntityType.elementEnd
-					&& rssRange.front.name != name) {
-				rssRange.popFront(); // elementStart
-				rssRange.popFront(); // text
-				rssRange.popFront(); // elementEnd
-			}
-
-		} else if(rssRange.front.type == EntityType.text
-				|| rssRange.front.type == EntityType.cdata) {
-
-			// found a valid text field
-			immutable content = rssRange.front.text;
-			rssRange.popFront();
-
-			fill: switch(name) {
-
-				default:
-					// we don't care about entries which are not attributes of RSSChannel
-					logDebug("Ignoring XML Entity: " ~ name);
-					break fill;
-
-				// inserting a channel
-				static if(is(ElementType == RSSChannel)) {
-					static foreach(m; __traits(allMembers, RSSChannel)) {
-						static if(m != "items") {
-							case m:
-								mixin("newElement."~m~" = content;");
-								break fill;
-						}
-					}
-
-				// inserting an item
-				} else if(is(ElementType == RSSItem)) {
-					static foreach(m; __traits(allMembers, RSSItem)) {
-							case m:
-								mixin("newElement."~m~" = content;");
-								break fill;
-					}
-
-				// should not get here (means function invocation was invalid)
-				} else assert(false, "Invalid ElementType requested");
-			}
+	static foreach(m; __traits(allMembers, RSSChannel)) {
+		static if(is(typeof(__traits(getMember, mrss_t, m)) == char[])) {
+			mixin("rss.channel."~m~" = rssData."~m~".ZtoString.idup;");
 		}
-		// skip elementEnd
-		rssRange.popFront();
 	}
-
-	// finished channel / item parsing. Insert it into rss struct
-	rss.match!(
-			(ref InvalidRSS i) {
-				logWarn("Invalid XML Entity detected: "
-						~ i.element
-						~ ": "
-						~ i.content);
-				},
-			(ref FailedRSS f) {}, 
-			(ref ValidRSS v) {
-					static if(is(ElementType == RSSChannel))
-						parent.tryMatch!(
-							(ref ValidRSS v) {
-								v.channel = newElement;
-							});
-					else if(is(ElementType == RSSItem))
-						parent.items ~= newElement;
-					logInfo("Inserted " ~ elname ~ ": " ~ newElement.title);
-				});
 }
 
-static immutable string selectElementName = "
-	string elname;
+void newItem(mrss_item_t* rssItem, ref ValidRSS rss)
+{
+	RSSItem newItem;
 
-	static if(is(ElementType == RSSChannel)) {
-		elname = \"channel\";
-		static assert(is(Parent == RSS));
-	} else if(is(ElementType == RSSItem)) {
-		elname = \"item\";
-		static assert(is(Parent == RSSChannel));
-	} else assert(false, \"Invalid ElementType provided\");
-";
+	static foreach(m; __traits(allMembers, RSSItem)) {
+		static if(is(typeof(__traits(getMember, mrss_t, m)) == char[])) {
+			mixin("newItem."~m~" = rssItem."~m~".ZtoString.idup;");
+		}
+	}
 
+	rss.channel.items ~= newItem;
+}
+
+string ZtoString(const char* c)
+{
+    if (c !is null)
+      return to!string(fromStringz(c));
+    else
+      return null;
+}
+
+char* toZString(string s)
+{
+	char[] ret=cast(char[])s;
+	if (ret[$-1]!='\0')
+		ret~="\0";
+	return ret.ptr;
+}
