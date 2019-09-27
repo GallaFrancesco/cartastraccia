@@ -1,3 +1,26 @@
+/**
+ * Copyright (c) 2019 Francesco Galla` - <me@fragal.eu>
+ *
+ * This file is part of cartastraccia.
+ *
+ * cartastraccia is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * cartastraccia is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with cartastraccia.  If not, see <https://www.gnu.org/licenses/>.
+ * ---
+ *
+ * Feed actor logic and inter-actor communication primitives.
+ *
+*/
+
 module cartastraccia.actor;
 
 import cartastraccia.rss;
@@ -20,6 +43,8 @@ import std.range;
 import core.time;
 import std.conv : to;
 import std.variant;
+import std.string : assumeUTF;
+import std.utf : validate;
 
 alias TaskMap = Task[string];
 
@@ -42,7 +67,9 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 		req.keepAlive = false;
 		req.timeout = ACTOR_REQ_TIMEOUT;
 		auto res = req.get(path);
-		parseRSS(rss, cast(immutable string)res.responseBody.data);
+		string tmp = res.responseBody.data.assumeUTF;
+		validate(tmp);
+		parseRSS(rss, tmp);
 
 	} catch (Exception e) {
 
@@ -56,7 +83,7 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 	rss.match!(
 			(ref InvalidRSS i) {
 				logWarn("Invalid feed at: "~path);
-				logWarn("Caused by entry \""~i.element~"\": "~i.content);
+				logWarn("Caused by: \""~i.element~"\": "~i.content);
 			},
 			(ref FailedRSS f) {
 				logWarn("Failed to load feed: "~ feedName);

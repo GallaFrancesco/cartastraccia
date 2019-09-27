@@ -24,13 +24,38 @@ Written in D using [sumtype](https://code.dlang.org/packages/sumtype),
 
 ## Installation
 
-Requires [Dub](https://github.com/dlang/dub):
+This program is compatible with a Unix-like OS, notably GNU/Linux. Other
+platforms (OSX, Windows) are not supported and they probably won't ever be.
+
+### Dependencies
+
+Carta Straccia uses
+[libmrss](https://autistici.org/bakunin/libmrss/doc/index.html) to parse RSS
+feeds. It can be installed in the following ways:
+
+* **Using your package manager**: `libmrss` can be installed from the main
+	repositories of some distros, using the appropriate package manager. Examples:
+		- Gentoo/portage: `emerge libmrss`
+		- Debian/apt and derivatives: `apt install libmrss`
+		- etc.
+
+
+* **From source**: If `libmrss` is not available for your distribution,
+it can be built and installed from source. See:
+[https://github.com/bakulf/libmrss](https://github.com/bakulf/libmrss).
+
+### Building
+
+Requires a working D compiler and [Dub](https://github.com/dlang/dub):
 
 1. clone this repo:
+
 ```
 git clone https://github.com/gallafrancesco/cartastraccia.git
 ```
+
 2. build:
+
 ```
 dub build
 ```
@@ -49,3 +74,12 @@ For feeds configuration, see the sample `feeds.conf` file included.
 ## License
 
 This project is licensed under the terms of the GPLv3 License.
+
+## Contributing
+
+Feel free to open issues and PRs. Current TODOs are:
+
+* Test extensively parsing of RSS feeds.
+* Work on a comfortable and polished CLI endpoint
+* Add enpoints in general (new visualization, curses, improve HTML...)
+* Documentation and usage examples
