@@ -20,6 +20,8 @@ import std.range;
 import core.time;
 import std.conv : to;
 import std.variant;
+import std.string : assumeUTF;
+import std.utf : validate;
 
 alias TaskMap = Task[string];
 
@@ -42,7 +44,8 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 		req.keepAlive = false;
 		req.timeout = ACTOR_REQ_TIMEOUT;
 		auto res = req.get(path);
-		string tmp = res.responseBody.data.to!string;
+		string tmp = res.responseBody.data.assumeUTF;
+		validate(tmp);
 		parseRSS(rss, tmp);
 
 	} catch (Exception e) {
@@ -57,7 +60,7 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 	rss.match!(
 			(ref InvalidRSS i) {
 				logWarn("Invalid feed at: "~path);
-				logWarn("Caused by entry \""~i.element~"\": "~i.content);
+				logWarn("Caused by: \""~i.element~"\": "~i.content);
 			},
 			(ref FailedRSS f) {
 				logWarn("Failed to load feed: "~ feedName);

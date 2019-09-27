@@ -1,11 +1,11 @@
 module cartastraccia.rss;
 
 import cartastraccia.actor : FeedActorRequest;
+import cartastraccia.include.mrss;
 
 import vibe.core.log;
 import vibe.http.server : render;
 import sumtype;
-import mrss;
 
 import std.algorithm : startsWith, sort, move;
 import std.datetime;
@@ -127,10 +127,12 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 void parseRSS(ref RSS rss, string feed) @trusted
 {
 	mrss_t* rssData;
-	mrss_error_t err = mrss_parse_buffer(feed.toZString, feed.length, &rssData);
+	size_t len;
+	auto fz = feed.toZString(len);
+	mrss_error_t err = mrss_parse_buffer(fz, len, &rssData);
 
 	if(err) {
-		rss = InvalidRSS("mrss", "");
+		rss = InvalidRSS("mrss", err.to!string);
 
 	} else {
 		rss = ValidRSS();
@@ -142,7 +144,7 @@ void parseRSS(ref RSS rss, string feed) @trusted
 				mrss_item_t* item = rssData.item;
 				while(item) {
 					newItem(item, vrss);
-					item = rssData.item;
+					item = item.next;
 				}
 			});
 	}
@@ -150,13 +152,13 @@ void parseRSS(ref RSS rss, string feed) @trusted
 	// parse date and sort in descending order (newest first)
 	rss.tryMatch!(
 			(ref InvalidRSS i) {
-				logWarn("Invalid RSS for feed: " ~ feed);
 				return;
 			},
 			(ref ValidRSS vr) {
-				vr.channel.items.sort!( (i,j) =>
-						(parseRFC822DateTime(i.pubDate)
-						 > parseRFC822DateTime(j.pubDate)));
+				vr.channel.items.sort!( (i,j) {
+						return (parseRFC822DateTime(i.pubDate)
+						 > parseRFC822DateTime(j.pubDate));
+				});
 			});
 }
 
@@ -165,7 +167,7 @@ private:
 void newChannel(mrss_t* rssData, ref ValidRSS rss)
 {
 	static foreach(m; __traits(allMembers, RSSChannel)) {
-		static if(is(typeof(__traits(getMember, mrss_t, m)) == char[])) {
+		static if(is(typeof(__traits(getMember, mrss_t, m)) == char*)) {
 			mixin("rss.channel."~m~" = rssData."~m~".ZtoString.idup;");
 		}
 	}
@@ -176,8 +178,8 @@ void newItem(mrss_item_t* rssItem, ref ValidRSS rss)
 	RSSItem newItem;
 
 	static foreach(m; __traits(allMembers, RSSItem)) {
-		static if(is(typeof(__traits(getMember, mrss_t, m)) == char[])) {
-			mixin("newItem."~m~" = rssItem."~m~".ZtoString.idup;");
+		static if(is(typeof(__traits(getMember, mrss_item_t, m)) == char*)) {
+			mixin("newItem."~m~" = rssItem."~m~".to!string;");
 		}
 	}
 
@@ -192,10 +194,11 @@ string ZtoString(const char* c)
       return null;
 }
 
-char* toZString(string s)
+auto toZString(string s, ref size_t len)
 {
-	char[] ret=cast(char[])s;
-	if (ret[$-1]!='\0')
-		ret~="\0";
+	char[] ret = s.to!(char[]);
+	if (ret[$-1] != '\0')
+		ret ~= "\0".to!(char[]);
+	len = ret.length;
 	return ret.ptr;
 }
