@@ -52,19 +52,18 @@ import std.getopt;
 import std.conv : to;
 import std.process;
 
-immutable string info = "
-=============================================
-|  Carta Straccia is a RSS feed aggregator  |
-=============================================
+immutable string info = "==========================================================================
+|               Carta Straccia is a RSS feed aggregator                  |
+==========================================================================
 0. Write a feeds.conf file [feed_name refresh_timeout feed_url]
 > echo \"Stallman 3h https://stallman.org/rss/rss.xml\" > feeds.conf
----------------------------------------------
+--------------------------------------------------------------------------
 1. Start the daemon:
 > cartastraccia --daemon --endpoint=cli --endpoint=html --feeds=feeds.conf
----------------------------------------------
+--------------------------------------------------------------------------
 2. Connect to daemon using HTML endpoint
 > cartastraccia --browser=/path/to/browser
----------------------------------------------";
+==========================================================================";
 
 void runWebServer(ref URLRouter router, immutable string bindAddress, immutable ushort bindPort)
 {
