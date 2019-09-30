@@ -81,7 +81,9 @@ This project is licensed under the terms of the GPLv3 License.
 
 Feel free to open issues and PRs. Current TODOs are:
 
-* Test extensively parsing of RSS feeds.
 * Work on a comfortable and polished CLI endpoint
 * Add enpoints in general (new visualization, curses, improve HTML...)
-* Documentation and usage examples
+* Implement an efficient categorization of feeds (by topic maybe?)
+* Oneshot mode (no daemon, cron support), might be connected to local archive
+  for article (DB/text)?
+* Documentation and usage examples.

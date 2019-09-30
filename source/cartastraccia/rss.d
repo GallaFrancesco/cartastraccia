@@ -180,9 +180,14 @@ void parseRSS(ref RSS rss, string feed) @trusted
 				return;
 			},
 			(ref ValidRSS vr) {
+
+				if(vr.channel.items[0].pubDate == "") {
+					logInfo("["~vr.channel.title~"] No pubDate for feed items. Not sorting articles by date");
+					return;
+				}
 				vr.channel.items.sort!( (i,j) {
 						return (parseRFC822DateTime(i.pubDate)
-						 > parseRFC822DateTime(j.pubDate));
+								> parseRFC822DateTime(j.pubDate));
 				});
 			});
 }
