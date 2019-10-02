@@ -51,6 +51,64 @@ alias TaskMap = Task[string];
 immutable uint ACTOR_MAX_RETRIES = 3;
 immutable ACTOR_REQ_TIMEOUT = 5.seconds;
 
+
+/**
+ * Main RSS Actor data
+*/
+alias RSSActorList = SumType!(RSSActor[], InvalidFeeds);
+
+struct InvalidFeeds
+{
+	string msg;
+}
+
+struct RSSActor
+{
+	string name;
+	Duration refresh;
+	string path;
+
+	this(string[] props) @safe
+	{
+		name = props[0];
+		path = props[3];
+
+		switch(props[2][0]) {
+			case 's':
+				refresh = dur!"seconds"(props[1].to!uint);
+				break;
+			case 'm':
+				refresh = dur!"minutes"(props[1].to!uint);
+				break;
+			case 'h':
+				refresh = dur!"hours"(props[1].to!uint);
+				break;
+			case 'd':
+				refresh = dur!"days"(props[1].to!uint);
+				break;
+			default:
+				assert(false, "should not get here");
+		}
+	}
+
+}
+
+RSSActorList processFeeds(ParseTree pt) @trusted
+{
+	RSSActor[] feeds;
+
+	foreach(ref conf; pt.children) {
+		foreach(ref feed; conf.children) {
+			feeds ~= RSSActor(feed.matches
+						.filter!((immutable s) => s != "\n" && s != " ")
+						.array
+					);
+		}
+	}
+	if(feeds.empty) return RSSActorList(InvalidFeeds("No feeds found"));
+	else return RSSActorList(feeds);
+}
+
 /**
  * Actor in charge of:
  * - parsing a RSS feed
@@ -98,6 +156,39 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 }
 
 /**
+ * Resurrect a set of tasks by updating the associated data structs
+*/
+TaskMap resurrect(RSSActorList feeds)
+{
+	TaskMap tasks;
+
+	feeds.match!(
+			(InvalidFeeds i) {
+				logWarn("Invalid feeds processed. Exiting.");
+				return;
+			},
+			(RSSActor[] fl) {
+
+				// n. threads == n. feeds
+				setupWorkerThreads(fl.length.to!uint);
+
+				// start tasks in charge of updating feeds
+				feeds.match!(
+						(InvalidFeeds i) => logFatal(i.msg),
+						(RSSActor[] fl) {
+							fl.each!(
+									(RSSActor feed) {
+										logInfo("Starting task: "~feed.name);
+										// start workers to serve RSS data
+										tasks[feed.name] = runWorkerTaskH(
+												&feedActor, feed.name, feed.path, 0);
+									});
+						});
+			});
+	return tasks;
+}
+
+/**
  * Communication protocol between tasks
 */
 enum FeedActorRequest { DATA_CLI, DATA_HTML, QUIT }
@@ -105,7 +196,6 @@ enum FeedActorRequest { DATA_CLI, DATA_HTML, QUIT }
 enum FeedActorResponse { INVALID, VALID }
 
 alias RequestDataLength = ulong;
-
 
 static immutable ulong chunkSize = 4096;
 
@@ -124,13 +214,14 @@ void listenOnce(immutable string feedName, ref RSS rss) {
 					webTask.send(FeedActorResponse.INVALID);
 					quit = true;
 				},
+
 			(ref FailedRSS f) {
 					auto webTask = receiveOnly!Task;
 					webTask.send(FeedActorResponse.INVALID);
 					quit = true;
 				},
-			(ref ValidRSS vr) {
 
+			(ref ValidRSS vr) {
 					try {
 						// receive the webserver task
 						Task webTask = receiveOnly!Task;
@@ -140,7 +231,6 @@ void listenOnce(immutable string feedName, ref RSS rss) {
 							logWarn("Web task is not running");
 							return;
 						}
-
 
 						// receive the actual request
 						receive(
@@ -158,7 +248,7 @@ void listenOnce(immutable string feedName, ref RSS rss) {
 									break;
 
 								case FeedActorRequest.QUIT:
-									logInfo("Task exiting due to QUIT request.");
+									logInfo("["~feedName~"] Task exiting due to QUIT request.");
 									quit = true;
 									break;
 
@@ -181,6 +271,9 @@ void listenOnce(immutable string feedName, ref RSS rss) {
 	else listenOnce(feedName, rss);
 }
 
+/**
+ * Debug only
+*/
 void dispatchCLI(scope Task task, immutable string data)
 {
 	ulong len = data.length;
@@ -194,3 +287,4 @@ void dispatchCLI(scope Task task, immutable string data)
 		b = (b+chunkSize > len) ? len : b + chunkSize;
 	}
 }
+
