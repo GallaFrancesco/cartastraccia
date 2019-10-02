@@ -78,14 +78,8 @@ void runWebServer(ref URLRouter router, immutable string bindAddress, immutable 
 void runDaemon(immutable string feedsFile, immutable
 		string bindAddress, immutable ushort bindPort)
 {
-	// parse feed list
-	auto pt = ConfigFile(readText(feedsFile));
-	if(!pt.successful) {
-		logWarn("Invalid "~feedsFile~" file format, check cartastraccia.config for grammar");
-		return;
-	}
 
-	auto feeds = processFeeds(pt);
+	auto feeds = loadFeedsConfig(feedsFile);
 	TaskMap tasks;
 
 	feeds.match!(
@@ -93,7 +87,7 @@ void runDaemon(immutable string feedsFile, immutable
 				logWarn("Invalid feeds processed. Exiting.");
 				return;
 			},
-			(RSSFeed[] fl) {
+			(RSSActor[] fl) {
 
 				// n. threads == n. feeds
 				setupWorkerThreads(fl.length.to!uint);
@@ -101,9 +95,9 @@ void runDaemon(immutable string feedsFile, immutable
 				// start tasks in charge of updating feeds
 				feeds.match!(
 						(InvalidFeeds i) => logFatal(i.msg),
-						(RSSFeed[] fl) {
+						(RSSActor[] fl) {
 							fl.each!(
-									(RSSFeed feed) {
+									(RSSActor feed) {
 										logInfo("Starting task: "~feed.name);
 										// start workers to serve RSS data
 										tasks[feed.name] = runWorkerTaskH(
@@ -113,7 +107,8 @@ void runDaemon(immutable string feedsFile, immutable
 
 				// initialize a new service to serve requests
 				auto router = new URLRouter;
-				router.registerWebInterface(new EndpointService(feeds, tasks));
+				router.registerWebInterface(new EndpointService(feeds, tasks,
+							feedsFile));
 				router.get("*", serveStaticFiles("public/"));
 
 				// start the webserver in main thread
@@ -124,6 +119,8 @@ void runDaemon(immutable string feedsFile, immutable
 void runClient(EndpointType endpoint, immutable string browser, immutable string
 		bindAddress, immutable ushort bindPort, immutable bool reloadFeeds)
 {
+
+	import std.stdio;
 
 	if(reloadFeeds) {
 		try {
@@ -189,6 +186,10 @@ void main(string[] args)
 	if(helpInformation.helpWanted) {
 		defaultGetoptPrinter(info, helpInformation.options);
 		return;
+	}
+
+	if(daemon && reloadFeeds) {
+		logWarn("Starting daemon. Feeds file loading is the default behavior. Ignoring reload request.");
 	}
 
 	if(daemon) runDaemon(feedsFile, bindAddress, bindPort);
