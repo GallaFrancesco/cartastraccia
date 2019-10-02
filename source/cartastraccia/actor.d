@@ -169,9 +169,6 @@ TaskMap resurrect(RSSActorList feeds)
 			},
 			(RSSActor[] fl) {
 
-				// n. threads == n. feeds
-				setupWorkerThreads(fl.length.to!uint);
-
 				// start tasks in charge of updating feeds
 				feeds.match!(
 						(InvalidFeeds i) => logFatal(i.msg),
