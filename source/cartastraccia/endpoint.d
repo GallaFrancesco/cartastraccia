@@ -49,21 +49,23 @@ enum EndpointType {
 class EndpointService {
 
 	private {
-		RSSFeedList feedList;
+		RSSActorList feedList;
 		TaskMap tasks;
+		immutable string configFile;
 	}
 
 	DateTime[string] lastUpdate;
 
-	this(RSSFeedList fl, TaskMap tm)
+	this(RSSActorList fl, TaskMap tm, immutable string config)
 	{
 		feedList = fl;
 		tasks = tm;
+		configFile = config;
 
 		// refresh RSS data with a timer
-		feedList.tryMatch!((RSSFeed[] fl) {
+		feedList.tryMatch!((RSSActor[] fl) {
 
-				fl.each!((RSSFeed feed) {
+				fl.each!((RSSActor feed) {
 
 					lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
@@ -85,37 +87,54 @@ class EndpointService {
 							tasks[feed.name].send(FeedActorRequest.QUIT);
 							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path, 0);
 
-							logInfo("Finished updating: " ~ feed.name);
+							logInfo("["~feed.name~"] Finished updating.");
 
 							}, true);
 				});
 		});
 	}
 
+	void getReload()
+	{
+		logInfo("Received reload request. Stopping current tasks.");
+
+		feedList.match!(
+			(InvalidFeeds i) {},
+			(RSSActor[] fl) {
+				fl.each!(
+					(RSSActor f) {
+
+						actorHandshake(f.name);
+
+						tasks[f.name].send(FeedActorRequest.QUIT);
+					});
+				});
+
+		loadFeedsConfig(configFile).match!(
+
+				(InvalidFeeds i) {
+					logWarn("Not reloading");
+				},
+				(RSSActor[] feeds) {
+					logInfo("Successfully reloaded feeds file.");
+					feedList = feeds;
+				});
+
+		tasks = resurrect(feedList);
+	}
+
 	@path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
-		RSSFeed[] validFeeds;
+		RSSActor[] validFeeds;
 		feedList.match!(
 
 				(InvalidFeeds i) {},
 
-				(RSSFeed[] fl) {
+				(RSSActor[] fl) {
 
-					fl.each!((RSSFeed f) {
+					fl.each!((RSSActor f) {
 
-							// send task for response from server
-							if(f.name in tasks) tasks[f.name].send(Task.getThis());
-							else {
-								tasks.remove(f.name);
-								return;
-							}
-
-							// validate feeds
-							auto resp = receiveOnly!FeedActorResponse;
-							if(resp == FeedActorResponse.INVALID) {
-								tasks.remove(f.name);
-								return;
-							}
+							actorHandshake(f.name);
 
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_HTML);
@@ -138,17 +157,11 @@ class EndpointService {
 		string data;
 		feedList.match!(
 				(InvalidFeeds i) {},
-				(RSSFeed[] fl) {
+				(RSSActor[] fl) {
 					fl.each!(
-						(RSSFeed f) {
-							// send task for response from server
-							tasks[f.name].send(Task.getThis());
+						(RSSActor f) {
+							actorHandshake(f.name);
 
-							auto resp = receiveOnly!FeedActorResponse;
-							if(resp == FeedActorResponse.INVALID) {
-								tasks.remove(f.name);
-								return;
-							}
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_CLI);
 							// receive data length
@@ -168,5 +181,20 @@ class EndpointService {
 
 		res.writeBody(data);
 	}
+private:
+
+	void actorHandshake(immutable string fname)
+	{
+		// send task for response from server
+		tasks[fname].send(Task.getThis());
+
+		auto resp = receiveOnly!FeedActorResponse;
+		if(resp == FeedActorResponse.INVALID) {
+			tasks.remove(fname);
+			return;
+		}
+	}
+
 }
+
 
