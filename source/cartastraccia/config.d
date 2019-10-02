@@ -23,6 +23,8 @@
 
 module cartastraccia.config;
 
+import cartastraccia.actor;
+
 import pegged.grammar;
 import sumtype;
 
@@ -31,6 +33,7 @@ import std.datetime;
 import std.conv : to;
 import std.algorithm : filter;
 import std.range;
+import std.file : readText;
 
 mixin(grammar(ConfigFileParser));
 
@@ -60,57 +63,13 @@ immutable string ConfigFileParser = `
 		Newline <- endOfLine / endOfInput
 `;
 
-alias RSSFeedList = SumType!(RSSFeed[], InvalidFeeds);
 
-
-struct InvalidFeeds
+RSSActorList loadFeedsConfig(immutable string feedsFile)
 {
-	string msg;
-}
 
-struct RSSFeed
-{
-	string name;
-	Duration refresh;
-	string path;
-
-	this(string[] props) @safe
-	{
-		name = props[0];
-		path = props[3];
-
-		switch(props[2][0]) {
-			case 's':
-				refresh = dur!"seconds"(props[1].to!uint);
-				break;
-			case 'm':
-				refresh = dur!"minutes"(props[1].to!uint);
-				break;
-			case 'h':
-				refresh = dur!"hours"(props[1].to!uint);
-				break;
-			case 'd':
-				refresh = dur!"days"(props[1].to!uint);
-				break;
-			default:
-				assert(false, "should not get here");
-		}
+	auto pt = ConfigFile(readText(feedsFile));
+	if(!pt.successful) {
+		return RSSActorList(InvalidFeeds("Unable to parse config."));
 	}
-
-}
-
-RSSFeedList processFeeds(ParseTree pt) @trusted
-{
-	RSSFeed[] feeds;
-
-	foreach(ref conf; pt.children) {
-		foreach(ref feed; conf.children) {
-			feeds ~= RSSFeed(feed.matches
-						.filter!((immutable s) => s != "\n" && s != " ")
-						.array
-					);
-		}
-	}
-	if(feeds.empty) return RSSFeedList(InvalidFeeds("No feeds found"));
-	else return RSSFeedList(feeds);
+	return processFeeds(pt);
 }
