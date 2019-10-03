@@ -158,7 +158,7 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 /**
  * Resurrect a set of tasks by updating the associated data structs
 */
-TaskMap resurrect(RSSActorList feeds)
+TaskMap resumeWorkers(RSSActorList feeds, TaskMap oldTasks)
 {
 	TaskMap tasks;
 
@@ -176,7 +176,14 @@ TaskMap resurrect(RSSActorList feeds)
 							fl.each!(
 									(RSSActor feed) {
 										logInfo("Starting task: "~feed.name);
-										// start workers to serve RSS data
+
+										// ensure all previous tasks are destroyed
+										if(oldTasks[feed.name].running()) {
+											logWarn("["~feed.name~"] Force stop.");
+											oldTasks[feed.name].interrupt();
+										}
+
+										// start new workers
 										tasks[feed.name] = runWorkerTaskH(
 												&feedActor, feed.name, feed.path, 0);
 									});

@@ -36,7 +36,7 @@ import vibe.http.router;
 import vibe.web.web;
 import sumtype;
 
-import std.algorithm : each;
+import std.algorithm : each, filter;
 import std.datetime;
 import core.time;
 
@@ -94,7 +94,7 @@ class EndpointService {
 		});
 	}
 
-	void getReload()
+	void getReload(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
 		logInfo("Received reload request. Stopping current tasks.");
 
@@ -120,7 +120,8 @@ class EndpointService {
 					feedList = feeds;
 				});
 
-		tasks = resurrect(feedList);
+		tasks = resumeWorkers(feedList, tasks);
+		res.writeBody("Successfully reloaded feeds file.");
 	}
 
 	@path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
@@ -132,7 +133,8 @@ class EndpointService {
 
 				(RSSActor[] fl) {
 
-					fl.each!((RSSActor f) {
+					fl.filter!((RSSActor f) => f.name in tasks)
+						.each!((RSSActor f) {
 
 							actorHandshake(f.name);
 
