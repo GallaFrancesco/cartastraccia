@@ -135,6 +135,7 @@ class EndpointService {
 
 					fl.filter!((RSSActor f) => f.name in tasks)
 						.each!((RSSActor f) {
+							if(!(f.name in tasks)) return;
 
 							actorHandshake(f.name);
 
