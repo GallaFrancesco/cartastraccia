@@ -135,9 +135,12 @@ class EndpointService {
 
 					fl.filter!((RSSActor f) => f.name in tasks)
 						.each!((RSSActor f) {
-							if(!(f.name in tasks)) return;
 
 							actorHandshake(f.name);
+
+							if(!(f.name in tasks)) {
+								return;
+							}
 
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_HTML);
