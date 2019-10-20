@@ -42,7 +42,6 @@ import core.time;
 
 enum EndpointType {
 	cli,
-	xml,
 	html
 }
 
@@ -136,11 +135,7 @@ class EndpointService {
 					fl.filter!((RSSActor f) => f.name in tasks)
 						.each!((RSSActor f) {
 
-							actorHandshake(f.name);
-
-							if(!(f.name in tasks)) {
-								return;
-							}
+							if(!actorHandshake(f.name)) return;
 
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_HTML);
@@ -151,7 +146,6 @@ class EndpointService {
 
 					feedList = validFeeds;
 					res.render!("index.dt", req, validFeeds, lastUpdate, asciiArt);
-
 				});
 	}
 
@@ -166,7 +160,8 @@ class EndpointService {
 				(RSSActor[] fl) {
 					fl.each!(
 						(RSSActor f) {
-							actorHandshake(f.name);
+
+							if(!actorHandshake(f.name)) return;
 
 							// send data request
 							tasks[f.name].send(FeedActorRequest.DATA_CLI);
@@ -189,18 +184,22 @@ class EndpointService {
 	}
 private:
 
-	void actorHandshake(immutable string fname)
+	bool actorHandshake(immutable string fname)
 	{
 		// send task for response from server
+		if(!(fname in tasks)) return false;
+
 		tasks[fname].send(Task.getThis());
 
 		auto resp = receiveOnly!FeedActorResponse;
+
 		if(resp == FeedActorResponse.INVALID) {
 			tasks.remove(fname);
-			return;
+			return false;
 		}
-	}
 
+		return true;
+	}
 }
 
 
