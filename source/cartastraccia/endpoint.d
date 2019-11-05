@@ -46,6 +46,13 @@ enum EndpointType {
 	html
 }
 
+/**
+ * Implementing methods for a vibe Web Interface.
+ * Functions are mapped to a URL path via an attribute.
+ *
+ * For more informations see:
+ * vibed.org/api/vibe.web.web/registerWebInterface
+ */
 class EndpointService {
 
 	private {
@@ -94,6 +101,10 @@ class EndpointService {
 		});
 	}
 
+    /**
+     * Called when an http request is made to "<bindaddress>:<bindport>/reload"
+     * Requests the rss feeds from their respective hosts.
+     */
 	void getReload(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
 		logInfo("Received reload request. Stopping current tasks.");
@@ -124,7 +135,11 @@ class EndpointService {
 		res.writeBody("Successfully reloaded feeds file.");
 	}
 
-	@path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
+    /**
+     * Called when an http request is made to "<bindaddress>:<bindport>/". 
+     * Returns the index file in html form.
+     */
+    @path("/") void getHTMLEndpoint(scope HTTPServerRequest req, scope HTTPServerResponse res)
 	{
 		RSSActor[] validFeeds;
 		feedList.match!(
@@ -155,9 +170,10 @@ class EndpointService {
 				});
 	}
 
-	/**
-	 * Debug purpose only ATM
-	 */
+    /**
+     * Called when an http request is made to "<bindaddress>:<bindport>/cli". 
+     * Returns data gathered from the RSS feeds in a weakly formatted form.
+     */
 	@path("/cli") void getCLIEndpoint(scope HTTPServerResponse res)
 	{
 		string data;

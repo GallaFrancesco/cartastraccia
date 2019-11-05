@@ -89,6 +89,15 @@ Title refresh-time  url
 where refresh time can be expressed in seconds `s`, minutes `m`, hours `h` or days `d`.
 You can see an example `feeds.conf` file included in the repository.
 
+## How does it work
+
+Cartastraccia is composed by a daemon and a client.
+
+#### The Daemon
+
+The daemon when launched parses the feed configuration file (exiting on failure).
+For every RSS feed a task (in the form of an actor) is launched
+
 ## License
 
 This project is licensed under the terms of the GPLv3 License.

@@ -121,11 +121,11 @@ RSSActorList processFeeds(ParseTree pt) @trusted
 }
 
 /**
- * Actor in charge of:
- * - parsing a RSS feed
- * - dumping news to DB
- * - listening for messages from the webserver
-*/
+ * Requests and parse a RSS feed from a remote host.
+ * In case of success create an html page into:
+ * "public/channels/<feedName>.html";
+ * Function executed in a task.
+ */
 void feedActor(immutable string feedName, immutable string path, immutable uint retries) @trusted
 {
 	RSS rss;
@@ -143,7 +143,7 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 	} catch (Exception e) {
 
 		if(retries < ACTOR_MAX_RETRIES) {
-			feedActor(feedName, path, retries+1);
+	 		feedActor(feedName, path, retries+1); // retry by recurring
 			return;
 		}
 		rss = FailedRSS(e.msg);
