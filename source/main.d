@@ -59,12 +59,17 @@ immutable string info = "=======================================================
 > echo \"Stallman 3h https://stallman.org/rss/rss.xml\" > feeds.conf
 --------------------------------------------------------------------------
 1. Start the daemon:
-> cartastraccia --daemon --endpoint=cli --endpoint=html --feeds=feeds.conf
+> cartastraccia --daemon --feeds=feeds.conf
 --------------------------------------------------------------------------
 2. Connect to daemon using HTML endpoint
 > cartastraccia --browser=/path/to/browser
 ==========================================================================";
 
+/**
+ * Start a vibe.d webserver
+ * using an already initialied router
+ * Loops on the eventloop until stopped.
+ */
 void runWebServer(ref URLRouter router, immutable string bindAddress, immutable ushort bindPort)
 {
 	auto settings = new HTTPServerSettings;
@@ -75,6 +80,13 @@ void runWebServer(ref URLRouter router, immutable string bindAddress, immutable 
 	runEventLoop();
 }
 
+/**
+ * This function is in charge of:
+ * - reading `feeds.conf`
+ * - initializing an actor for each RSS feed, with early return in case of failure
+ * - registering a vibe.d router with an handle for each endpoint [html, cli, json, ...]
+ * - starting a webserver
+ */
 void runDaemon(immutable string feedsFile, immutable
 		string bindAddress, immutable ushort bindPort)
 {

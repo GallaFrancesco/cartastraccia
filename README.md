@@ -59,7 +59,7 @@ git clone https://github.com/gallafrancesco/cartastraccia.git
 2. build:
 
 ```
-dub build
+dub build -b release
 ```
 
 You'll find the `cartastraccia` executable in the root project directory.
@@ -68,10 +68,35 @@ You'll find the `cartastraccia` executable in the root project directory.
 
 CLI options and sample first usage:
 ```
-cartastraccia --help
+$ cartastraccia --help
+
+-d   --daemon Start daemon
+-e --endpoint Endpoints to register [cli]
+-f    --feeds File containing feeds to pull [feeds.conf]
+-l     --host Bind to this address [localhost]
+-p     --port Bind to this port [8080]
+-b  --browser Absolute path to browser for HTML rendering [/usr/bin/elinks]
+-r   --reload Reload feeds file
+-h     --help This help information.
 ```
 
-For feeds configuration, see the sample `feeds.conf` file included.
+RSS feeds are gathered from a configuration file specified by the option "--feeds=<feeds.conf>"
+A feed configuration file should have the following format:
+```
+Title refresh-time  url
+```
+
+where refresh time can be expressed in seconds `s`, minutes `m`, hours `h` or days `d`.
+You can see an example `feeds.conf` file included in the repository.
+
+## How does it work
+
+Cartastraccia is composed by a daemon and a client.
+
+#### The Daemon
+
+The daemon when launched parses the feed configuration file (exiting on failure).
+For every RSS feed a task (in the form of an actor) is launched
 
 ## License
 

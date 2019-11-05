@@ -63,7 +63,10 @@ immutable string ConfigFileParser = `
 		Newline <- endOfLine / endOfInput
 `;
 
-
+/**
+ * Populate a list of structures 
+ * containing data parsed from feed.conf
+ */
 RSSActorList loadFeedsConfig(immutable string feedsFile)
 {
 

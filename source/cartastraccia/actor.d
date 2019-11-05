@@ -57,15 +57,26 @@ immutable ACTOR_REQ_TIMEOUT = 5.seconds;
 */
 alias RSSActorList = SumType!(RSSActor[], InvalidFeeds);
 
+/**
+ * Used when an error 
+ * in the configuration file is encountered
+ */
 struct InvalidFeeds
 {
 	string msg;
 }
 
+/**
+ * Generated from each line of the configuration file,
+ * the members describes entries by the user.
+ */
 struct RSSActor
 {
+    /// title of the feed
 	string name;
+    /// refresh rate, seconds/minutes/hours/days
 	Duration refresh;
+    /// URL to request the rss feed
 	string path;
 
 	this(string[] props) @safe
@@ -110,11 +121,11 @@ RSSActorList processFeeds(ParseTree pt) @trusted
 }
 
 /**
- * Actor in charge of:
- * - parsing a RSS feed
- * - dumping news to DB
- * - listening for messages from the webserver
-*/
+ * Requests and parse a RSS feed from a remote host.
+ * In case of success create an html page into:
+ * "public/channels/<feedName>.html";
+ * Function executed in a task.
+ */
 void feedActor(immutable string feedName, immutable string path, immutable uint retries) @trusted
 {
 	RSS rss;
@@ -132,7 +143,7 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 	} catch (Exception e) {
 
 		if(retries < ACTOR_MAX_RETRIES) {
-			feedActor(feedName, path, retries+1);
+	 		feedActor(feedName, path, retries+1); // retry by recurring
 			return;
 		}
 		rss = FailedRSS(e.msg);
@@ -197,6 +208,7 @@ TaskMap resumeWorkers(RSSActorList feeds, TaskMap oldTasks)
 */
 enum FeedActorRequest { DATA_CLI, DATA_HTML, QUIT }
 
+/// ditto
 enum FeedActorResponse { INVALID, VALID }
 
 alias RequestDataLength = ulong;
@@ -207,7 +219,7 @@ private:
 
 /**
  * Listen for messages from the webserver
-*/
+ */
 void listenOnce(immutable string feedName, ref RSS rss) {
 
 	bool quit = false;
