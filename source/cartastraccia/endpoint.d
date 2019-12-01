@@ -83,7 +83,6 @@ class EndpointService {
 
 							auto resp = receiveOnly!FeedActorResponse;
 							if(resp == FeedActorResponse.INVALID) {
-								tasks.remove(feed.name);
 								return;
 							}
 
@@ -210,7 +209,6 @@ private:
 		auto resp = receiveOnly!FeedActorResponse;
 
 		if(resp == FeedActorResponse.INVALID) {
-			tasks.remove(fname);
 			return false;
 		}
 
