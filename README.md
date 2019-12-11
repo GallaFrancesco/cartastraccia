@@ -5,13 +5,13 @@ Written in D using [sumtype](https://code.dlang.org/packages/sumtype),
 [htmld](https://code.dlang.org/packages/htmld),
 [requests](https://code.dlang.org/requests) and [Vibe.d](https://vibed.org)
 
-RSS parsing uses
+RSS parsing with
 [libmrss](https://autistici.org/bakunin/libmrss/doc/index.html).
 
 ## Features
 
-* Linux only (yep, it's a feature)
-* Server/client architecture with simple CLI parameters
+* Linux only
+* Server/client architecture with CLI parameters
 * Multi-tasking using Vibe.d's Tasks and the message passing model to
   concurrently process multiple feeds
 * **Single-file feeds configuration**, with separate, per-feed refresh interval
@@ -26,10 +26,9 @@ RSS parsing uses
 
 ## Installation
 
-This program is compatible with a Unix-like OS, notably GNU/Linux. Other
-platforms (OSX, Windows) are not supported and they probably won't ever be.
-
 ### Dependencies
+
+* DMD, build with Dub
 
 Carta Straccia uses
 [libmrss](https://autistici.org/bakunin/libmrss/doc/index.html) to parse RSS
@@ -82,21 +81,34 @@ $ cartastraccia --help
 
 RSS feeds are gathered from a configuration file specified by the option "--feeds=<feeds.conf>"
 A feed configuration file should have the following format:
+
 ```
 Title refresh-time  url
 ```
 
 where refresh time can be expressed in seconds `s`, minutes `m`, hours `h` or days `d`.
-You can see an example `feeds.conf` file included in the repository.
+You can check out an example `feeds.conf` file included in the repository.
 
-## How does it work
+## How does it work (roughly)
 
-Cartastraccia is composed by a daemon and a client.
+Cartastraccia's architecture is composed of a daemon and a client. The client can connect to the daemon and receive data through different endpoints.
+
+#### Endpoints
+
+Endpoints are interfaces: URL linked to particular visualizations (HTML, CLI). Interfaces are defined in `endpoints.d` and can be added by chosing a url and editing the D code base.
 
 #### The Daemon
 
-The daemon when launched parses the feed configuration file (exiting on failure).
-For every RSS feed a task (in the form of an actor) is launched
+The daemon parses the feed configuration file, exiting on failure.
+For every RSS feed a task is invoked to fetch feed data using an HTML GET request on the URL provided in the configuration file.
+For each endpoint chosen at startup, the server will expose a URL which provides the data.
+The HTML endpoint works by rendering static HTML files which are saved to the `public/` directory. The current style is defined in che `css` subdirectory.
+The CLI endpoint can be invoked from the client but is not supported (yet).
+
+#### The Client
+
+The client is a command-line interface to the daemon. It can connect to a given host and port and display the main feeds page based on the endpoint chosen.
+HTML will simply invoke a browser (as in `elinks http://host:port`). The CLI endpoint will display a (sub)set of news fetching data from the daemon.
 
 ## License
 
