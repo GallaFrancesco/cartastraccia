@@ -138,6 +138,10 @@ void feedActor(immutable string feedName, immutable string path, immutable uint 
 		auto res = req.get(path);
 		string tmp = res.responseBody.data.assumeUTF;
 		validate(tmp);
+        if(tmp.empty) {
+            throw new Exception("Empty response from " ~ feedName ~
+                    ", removing from feeds.");
+        }
 		parseRSS(rss, tmp);
 
 	} catch (Exception e) {

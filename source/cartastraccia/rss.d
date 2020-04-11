@@ -152,7 +152,7 @@ string dumpRSS(FeedActorRequest dataFormat)(ref ValidRSS rss, immutable string f
 void parseRSS(ref RSS rss, string feed) @trusted
 {
 	mrss_t* rssData;
-	size_t len;
+    size_t len;
 	auto fz = feed.toZString(len);
 	mrss_error_t err = mrss_parse_buffer(fz, len, &rssData);
 

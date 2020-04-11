@@ -37,6 +37,7 @@ import std.string : fromStringz;
 import std.conv : to;
 
 import core.stdc.time;
+import std.range;
 
 string ZtoString(const char* c) nothrow
 {
@@ -48,6 +49,8 @@ string ZtoString(const char* c) nothrow
 
 auto toZString(string s, ref size_t len) nothrow
 {
+    assert(!s.empty);
+
 	char[] ret = s.to!(char[]);
 	if (ret[$-1] != '\0')
 		ret ~= "\0".to!(char[]);
