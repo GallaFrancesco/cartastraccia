@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 Francesco Galla` - <me@fragal.eu>
+ * Copyright (c) 2020 Francesco Galla` - <me@fragal.eu>
  *
  * This file is part of cartastraccia.
  *
@@ -232,13 +232,11 @@ void listenOnce(immutable string feedName, ref RSS rss) {
 			(ref InvalidRSS i) {
 					auto webTask = receiveOnly!Task;
 					webTask.send(FeedActorResponse.INVALID);
-					quit = true;
 				},
 
 			(ref FailedRSS f) {
 					auto webTask = receiveOnly!Task;
 					webTask.send(FeedActorResponse.INVALID);
-					quit = true;
 				},
 
 			(ref ValidRSS vr) {

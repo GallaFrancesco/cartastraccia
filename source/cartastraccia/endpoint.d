@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 Francesco Galla` - <me@fragal.eu>
+ * Copyright (c) 2020 Francesco Galla` - <me@fragal.eu>
  *
  * This file is part of cartastraccia.
  *
@@ -73,26 +73,26 @@ class EndpointService {
 
 				fl.each!((RSSActor feed) {
 
-					lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
+                        lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
-					setTimer(feed.refresh, () {
+                        setTimer(feed.refresh, () {
 
-							if(feed.name in tasks)
-								tasks[feed.name].send(Task.getThis());
-							else return;
+                                if(feed.name in tasks)
+                                    tasks[feed.name].send(Task.getThis());
+                                else return;
 
-							auto resp = receiveOnly!FeedActorResponse;
-							if(resp == FeedActorResponse.INVALID) {
-								return;
-							}
+                                auto resp = receiveOnly!FeedActorResponse;
+                                if(resp == FeedActorResponse.INVALID) {
+                                    return;
+                                }
 
-							// set last update time
-							lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
+                                // set last update time
+                                lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
-							tasks[feed.name].send(FeedActorRequest.QUIT);
-							tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path, 0);
+                                tasks[feed.name].send(FeedActorRequest.QUIT);
+                                tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path, 0);
 
-							logInfo("["~feed.name~"] Finished updating.");
+                                logInfo("["~feed.name~"] Finished updating.");
 
 							}, true);
 				});

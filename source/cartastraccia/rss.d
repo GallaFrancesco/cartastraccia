@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 Francesco Galla` - <me@fragal.eu>
+ * Copyright (c) 2020 Francesco Galla` - <me@fragal.eu>
  *
  * This file is part of cartastraccia.
  *
