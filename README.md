@@ -3,7 +3,7 @@
 Written in D using [sumtype](https://code.dlang.org/packages/sumtype),
 [pegged](https://code.dlang.org/packages/pegged),
 [htmld](https://code.dlang.org/packages/htmld),
-[requests](https://code.dlang.org/requests) and [Vibe.d](https://vibed.org)
+[requests](https://code.dlang.org/packages/requests) and [Vibe.d](https://vibed.org)
 
 RSS parsing with
 [libmrss](https://autistici.org/bakunin/libmrss/doc/index.html).
@@ -34,11 +34,11 @@ Carta Straccia uses
 [libmrss](https://autistici.org/bakunin/libmrss/doc/index.html) to parse RSS
 feeds. It can be installed in the following ways:
 
-* **Using your package manager**: `libmrss` can be installed from the main
-	repositories of some distros, using the appropriate package manager. Examples:
+* **Using your package manager**: `libmrss` can be installed from the
+	main repositories of most of the distros, using the appropriate
+	package manager. Examples:
 		- Gentoo/portage: `emerge libmrss`
 		- Debian/apt and derivatives: `apt install libmrss`
-		- etc.
 
 
 * **From source**: If `libmrss` is not available for your distribution,
@@ -120,7 +120,4 @@ Feel free to open issues and PRs. Current TODOs are:
 
 * Work on a comfortable and polished CLI endpoint
 * Add enpoints in general (new visualization, curses, improve HTML...)
-* Implement an efficient categorization of feeds (by topic maybe?)
-* Oneshot mode (no daemon, cron support), might be connected to local archive
-  for article (DB/text)?
-* Documentation and usage examples.
+* Oneshot mode (no daemon, cron support), might be connected to local articles db
