@@ -180,6 +180,10 @@ void parseRSS(ref RSS rss, string feed) @trusted
 				return;
 			},
 			(ref ValidRSS vr) {
+                if(vr.channel.items.empty) {
+                    logInfo("["~vr.channel.title~"] Empty feed");
+                    return;
+                }
 
 				if(vr.channel.items[0].pubDate == "") {
 					logInfo("["~vr.channel.title~"] No pubDate for feed items. Not sorting articles by date");
