@@ -110,7 +110,7 @@ RSSActorList processFeeds(ParseTree pt) @trusted
 
 	foreach(ref conf; pt.children) {
 		foreach(ref feed; conf.children) {
-			feeds ~= RSSActor(feed.matches
+			feeds ~= RSSActor( feed.matches
 						.filter!((immutable s) => s != "\n" && s != " ")
 						.array
 					);
@@ -184,26 +184,22 @@ TaskMap resumeWorkers(RSSActorList feeds, TaskMap oldTasks)
 			},
 			(RSSActor[] fl) {
 
-				// start tasks in charge of updating feeds
-				feeds.match!(
-						(InvalidFeeds i) => logFatal(i.msg),
-						(RSSActor[] fl) {
-							fl.each!(
-									(RSSActor feed) {
-										logInfo("Starting task: "~feed.name);
+                // start tasks in charge of updating feeds
+                fl.each!(
+                         (RSSActor feed) {
+                             logInfo("Starting task: "~feed.name);
 
-										// ensure all previous tasks are destroyed
-										if(oldTasks[feed.name].running()) {
-											logWarn("["~feed.name~"] Force stop.");
-											oldTasks[feed.name].interrupt();
-										}
+                             // ensure all previous tasks are destroyed
+                             if(oldTasks[feed.name].running()) {
+                                 logWarn("["~feed.name~"] Force stop.");
+                                 oldTasks[feed.name].interrupt();
+                             }
 
-										// start new workers
-										tasks[feed.name] = runWorkerTaskH(
-												&feedActor, feed.name, feed.path, 0);
-									});
-						});
-			});
+                             // start new workers
+                             tasks[feed.name] = runTask(
+                                  &feedActor, feed.name, feed.path, 0);
+                         });
+            });
 	return tasks;
 }
 

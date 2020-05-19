@@ -52,25 +52,15 @@ import std.getopt;
 import std.conv : to;
 import std.process;
 
-immutable string info = "==========================================================================
-|               Carta Straccia is a RSS feed aggregator                  |
-==========================================================================
-0. Write a feeds.conf file [feed_name refresh_timeout feed_url]
-> echo \"Stallman 3h https://stallman.org/rss/rss.xml\" > feeds.conf
---------------------------------------------------------------------------
-1. Start the daemon:
-> cartastraccia --daemon --feeds=feeds.conf
---------------------------------------------------------------------------
-2. Connect to daemon using HTML endpoint
-> cartastraccia --browser=/path/to/browser
-==========================================================================";
 
 /**
  * Start a vibe.d webserver
  * using an already initialied router
  * Loops on the eventloop until stopped.
  */
-void runWebServer(ref URLRouter router, immutable string bindAddress, immutable ushort bindPort)
+void runWebServer(ref URLRouter router,
+                  immutable string bindAddress,
+                  immutable ushort bindPort)
 {
 	auto settings = new HTTPServerSettings;
 	settings.port = bindPort;
@@ -87,8 +77,9 @@ void runWebServer(ref URLRouter router, immutable string bindAddress, immutable 
  * - registering a vibe.d router with an handle for each endpoint [html, cli, json, ...]
  * - starting a webserver
  */
-void runDaemon(immutable string feedsFile, immutable
-		string bindAddress, immutable ushort bindPort)
+void runDaemon(immutable string feedsFile,
+               immutable string bindAddress,
+               immutable ushort bindPort)
 {
 
 	auto feeds = loadFeedsConfig(feedsFile);
@@ -112,7 +103,7 @@ void runDaemon(immutable string feedsFile, immutable
 									(RSSActor feed) {
 										logInfo("Starting task: "~feed.name);
 										// start workers to serve RSS data
-										tasks[feed.name] = runWorkerTaskH(
+										tasks[feed.name] = runTask(
 												&feedActor, feed.name, feed.path, 0);
 									});
 						});
@@ -128,8 +119,9 @@ void runDaemon(immutable string feedsFile, immutable
 		});
 }
 
-void runClient(EndpointType endpoint, immutable string browser, immutable string
-		bindAddress, immutable ushort bindPort, immutable bool reloadFeeds)
+void runClient(immutable string bindAddress,
+               immutable ushort bindPort,
+               immutable bool reloadFeeds)
 {
 
 	import std.stdio;
@@ -147,63 +139,53 @@ void runClient(EndpointType endpoint, immutable string browser, immutable string
 		}
 	}
 
-	if(endpoint == EndpointType.cli) {
-		try {
-			string url = "http://"~bindAddress~":"~bindPort.to!string~"/cli";
-			auto req = Request();
-			req.keepAlive = false;
-			req.timeout = ACTOR_REQ_TIMEOUT;
-			req.get(url);
+    // try {
+    //     string url = "http://"~bindAddress~":"~bindPort.to!string~"/cli";
+    //     auto req = Request();
+    //     req.keepAlive = false;
+    //     req.timeout = ACTOR_REQ_TIMEOUT;
+    //     req.get(url);
 
-		} catch (Exception e) {
-			logWarn("ERROR from daemon: "~e.msg~"\nCheck daemon logs for details (is it running?)");
-		}
-
-	} else if(endpoint == EndpointType.html) {
-
-		if(!existsFile(browser)) {
-			logWarn("Could not find browser: "~browser);
-			logWarn("Try running: cartastraccia --browser=[/path/to/browser]");
-			return;
-		}
-
-		immutable address = "http://"~bindAddress~":"~bindPort.to!string;
-		auto pid = spawnShell(browser ~" "~address);
-		wait(pid);
-	}
+    // } catch (Exception e) {
+    //     logWarn("ERROR from daemon: "~e.msg~"\nCheck daemon logs for details (is it running?)");
+    // }
 }
 
 void main(string[] args)
 {
 	// CLI arguments
 	bool daemon = false;
-	EndpointType endpoint = EndpointType.html;
 	string feedsFile = "feeds.conf";
 	string bindAddress = "localhost";
 	ushort bindPort = 8080;
 	string browser = "/usr/bin/elinks";
 	bool reloadFeeds = false;
+    bool quickstart = false;
 
 	auto helpInformation = getopt(
-			args,
-			"daemon|d", "Start daemon", &daemon,
-			"endpoint|e", "Endpoints to register [cli]", &endpoint,
-			"feeds|f", "File containing feeds to pull [feeds.conf]", &feedsFile,
-			"host|l", "Bind to this address [localhost]", &bindAddress,
-			"port|p", "Bind to this port [8080]", &bindPort,
-			"browser|b", "Absolute path to browser for HTML rendering [/usr/bin/elinks]", &browser,
-			"reload|r", "Reload feeds file", &reloadFeeds
-		);
+        args,
+        "daemon|d",     "Start daemon",                               &daemon,
+        "feeds|f",      "File containing feeds to pull [feeds.conf]", &feedsFile,
+        "host|l",       "Bind to this address [localhost]",           &bindAddress,
+        "port|p",       "Bind to this port [8080]",                   &bindPort,
+        "reload|r",     "Reload feeds file",                          &reloadFeeds,
+        "quickstart|q", "Show quickstart template",                   &quickstart
+	);
 
 	if(helpInformation.helpWanted) {
-		defaultGetoptPrinter(info, helpInformation.options);
+		defaultGetoptPrinter(BANNER, helpInformation.options);
+		return;
+	}
+
+	if(quickstart) {
+		defaultGetoptPrinter(BANNER ~ QUICKSTART, helpInformation.options);
 		return;
 	}
 
 	if(daemon && reloadFeeds) {
-		logWarn("Starting daemon. Feeds file loading is the default behavior. Ignoring reload request.");
+		logWarn("Starting daemon. Ignoring reload request (not effective).");
 	}
 
 	if(daemon) runDaemon(feedsFile, bindAddress, bindPort);
-	else runClient(endpoint, browser, bindAddress, bindPort, reloadFeeds);
+	else runClient(bindAddress, bindPort, reloadFeeds);
 }

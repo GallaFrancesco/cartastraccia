@@ -40,11 +40,6 @@ import std.algorithm : each, filter;
 import std.datetime;
 import core.time;
 
-enum EndpointType {
-	cli,
-	html
-}
-
 /**
  * Implementing methods for a vibe Web Interface.
  * Functions are mapped to a URL path via an attribute.
@@ -90,7 +85,7 @@ class EndpointService {
                                 lastUpdate[feed.name] = cast(DateTime)Clock.currTime();
 
                                 tasks[feed.name].send(FeedActorRequest.QUIT);
-                                tasks[feed.name] = runWorkerTaskH(&feedActor, feed.name, feed.path, 0);
+                                tasks[feed.name] = runTask(&feedActor, feed.name, feed.path, 0);
 
                                 logInfo("["~feed.name~"] Finished updating.");
 
@@ -112,15 +107,13 @@ class EndpointService {
 			(RSSActor[] fl) {
 				fl.each!(
 					(RSSActor f) {
-
 						actorHandshake(f.name);
-
 						tasks[f.name].send(FeedActorRequest.QUIT);
 					});
 				});
 
-		loadFeedsConfig(configFile).match!(
-
+		loadFeedsConfig(configFile)
+            .match!(
 				(InvalidFeeds i) {
 					logWarn("Not reloading");
 				},

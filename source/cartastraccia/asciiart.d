@@ -39,3 +39,21 @@ static immutable string asciiArt = r"
 ░                                                                                      ░        ░                      
 
 ";
+
+static immutable string BANNER = "==========================================================================
+|               Carta Straccia is a RSS feed aggregator                  |
+==========================================================================";
+
+static immutable string QUICKSTART = "
+Quickstart
+--------------------------------------------------------------------------
+0. Write a feeds.conf file [feed_name refresh_timeout feed_url]
+> echo \"Stallman 3h https://stallman.org/rss/rss.xml\" > feeds.conf
+--------------------------------------------------------------------------
+1. Start the daemon:
+> cartastraccia --daemon --feeds=feeds.conf
+--------------------------------------------------------------------------
+2. Connect to daemon using HTML browser
+> elinks 'https://localhost:8080'
+==========================================================================
+";
